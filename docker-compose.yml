@@ -1,25 +1,25 @@
 services:
-  jtl-connector-nginx:
+  jtl-connector-dropshipping-nginx:
     networks:
       - default
       - shared-net
     image: nginx:latest
-    container_name: jtl-connector-nginx
+    container_name: jtl-connector-dropshipping-nginx
     ports:
-      - "8181:80"
+      - "8383:80"
     volumes:
       - ./:/var/www/html
       - ./.docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
-      - jtl-connector-php
+      - jtl-connector-dropshipping-php
 
-  jtl-connector-php:
+  jtl-connector-dropshipping-php:
     networks:
       - default
       - shared-net
     build:
       context: ./.docker/php
-    container_name: jtl-connector-php
+    container_name: jtl-connector-dropshipping-php
     volumes:
       - ./:/var/www/html
     expose:
@@ -27,9 +27,9 @@ services:
     depends_on:
       - jtl-connector-db
 
-  jtl-connector-db:
+  jtl-connector-dropshipping-db:
     image: mysql:8.0
-    container_name: jtl-connector-mysql
+    container_name: jtl-connector-dropshipping-mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ROOT
@@ -39,7 +39,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     ports:
-      - "3307:3306"
+      - "3309:3306"
 
 volumes:
   db_data:
