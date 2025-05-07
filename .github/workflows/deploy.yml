@@ -20,6 +20,6 @@ jobs:
         env:
           DEPLOYMENT_SSH_SERVER: p689712.mittwaldserver.info
           DEPLOYMENT_SSH_USER: p689712
-          DEPLOYMENT_REPOPATH: /home/www/p689712/html/jtl-connector-pimcore/.git
-          DEPLOYMENT_WORKTREE: /home/www/p689712/html/jtl-connector-pimcore
+          DEPLOYMENT_REPOPATH: /home/www/p689712/html/jtl-connector-dropshipping/.git
+          DEPLOYMENT_WORKTREE: /home/www/p689712/html/jtl-connector-dropshipping
           COMPOSER_COMMAND: "/usr/local/bin/php /usr/local/bin/composer"
