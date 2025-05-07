@@ -25,7 +25,7 @@ services:
     expose:
       - "9000"
     depends_on:
-      - jtl-connector-db
+      - jtl-connector-dropshipping-db
 
   jtl-connector-dropshipping-db:
     image: mysql:8.0
