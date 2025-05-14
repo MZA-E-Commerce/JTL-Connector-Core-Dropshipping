@@ -7,6 +7,7 @@ use Jtl\Connector\Core\Model\AbstractModel;
 use Jtl\Connector\Core\Model\Identity;
 use Jtl\Connector\Core\Model\Product;
 use Jtl\Connector\Core\Model\ProductPrice;
+use Jtl\Connector\Core\Model\QueryFilter;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
@@ -27,12 +28,21 @@ abstract class AbstractController
     public const CUSTOMER_TYPE_B2C = 'c2c6154f05b342d4b2da85e51ec805c9';
 
     /**
-     * @var string
+     * @var array
      */
     public const CUSTOMER_TYPE_MAPPINGS = [
         self::CUSTOMER_TYPE_B2B => 'B2B',
         self::CUSTOMER_TYPE_B2C => 'B2C',
         '' => 'CUSTOMER_TYPE_NOT_SET'
+    ];
+
+    /**
+     * @var array
+     */
+    public const CUSTOMER_TYPE_MAPPINGS_REVERSE = [
+        'B2B' => self::CUSTOMER_TYPE_B2B,
+        'B2C' => self::CUSTOMER_TYPE_B2C,
+        'CUSTOMER_TYPE_NOT_SET' => ''
     ];
 
     /**
@@ -121,7 +131,7 @@ abstract class AbstractController
                 try {
                     $pimcoreId = $this->getPimcoreId($model->getSku());
                 } catch (\Throwable $e) {
-                    $this->logger->error('Error fetching Pimcore ID for SKU '.$model->getSku().': '.$e->getMessage());
+                    $this->logger->error('Error fetching Pimcore ID for SKU ' . $model->getSku() . ': ' . $e->getMessage());
                     continue;
                 }
 
@@ -133,7 +143,7 @@ abstract class AbstractController
             try {
                 $this->updateModel($model);
             } catch (\Throwable $e) {
-                $this->logger->error('Error in updateModel(): '.$e->getMessage());
+                $this->logger->error('Error in updateModel(): ' . $e->getMessage());
             }
 
             $models[$i] = $model;
@@ -197,7 +207,7 @@ abstract class AbstractController
 
             throw new \RuntimeException('Pimcore API error: ' . ($data['error'] ?? 'Unknown error'));
 
-        } catch (TransportExceptionInterface | HttpExceptionInterface | DecodingExceptionInterface $e) {
+        } catch (TransportExceptionInterface|HttpExceptionInterface|DecodingExceptionInterface $e) {
             throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
         }
     }
@@ -212,10 +222,6 @@ abstract class AbstractController
         $httpMethod = $this->config->get('pimcore.api.endpoints.' . $type . '.method');
         $client = $this->getHttpClient();
         $fullApiUrl = $this->getEndpointUrl($type);
-
-        if (empty($product->getId()->getEndpoint())) {
-            throw new \RuntimeException('Product endpoint ID is empty!');
-        }
 
         // Set id of Pimcore product
         $postData = [
@@ -235,8 +241,6 @@ abstract class AbstractController
                 break;
             case self::UPDATE_TYPE_PRODUCT: // Check JTL WaWi setting "Artikel komplett senden"!
                 $this->logger->info('Updating full product (SKU: ' . $product->getSku() . ')');
-                // Stock level
-                $postData['stockLevel'] = $product->getStockLevel();
                 // Prices
                 $postData['prices'] = $this->getPrices($product);
                 // Recommended retail price gross
@@ -250,7 +254,7 @@ abstract class AbstractController
                 break;
         }
 
-        file_put_contents('/var/www/html/var/log/postData.log', $httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData) . PHP_EOL . PHP_EOL);
+        file_put_contents('/var/www/html/var/log/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData) . PHP_EOL . PHP_EOL);
 
         try {
             $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
@@ -265,7 +269,7 @@ abstract class AbstractController
 
             throw new \RuntimeException('Pimcore API error: ' . ($data['error'] ?? 'Unknown error'));
 
-        } catch (TransportExceptionInterface | HttpExceptionInterface | DecodingExceptionInterface $e) {
+        } catch (TransportExceptionInterface|HttpExceptionInterface|DecodingExceptionInterface $e) {
             throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
         }
     }
@@ -356,17 +360,17 @@ abstract class AbstractController
             foreach ($priceModel->getItems() as $item) {
                 if (empty($priceModel->getCustomerGroupId()->getEndpoint())) {
                     $result[self::PRICE_TYPE_REGULAR][] = [
-                        'type'            => self::PRICE_TYPE_RETAIL_NET,
+                        'type' => self::PRICE_TYPE_RETAIL_NET,
                         'customerGroupId' => self::CUSTOMER_TYPE_MAPPINGS[$priceModel->getCustomerGroupId()->getEndpoint()],
-                        'priceNet'        => $item->getNetPrice(),
-                        'quantity'        => $item->getQuantity(),
+                        'priceNet' => $item->getNetPrice(),
+                        'quantity' => $item->getQuantity(),
                     ];
                 } else {
                     $result[self::PRICE_TYPE_REGULAR][] = [
-                        'type'            => self::PRICE_TYPE_REGULAR,
+                        'type' => self::PRICE_TYPE_REGULAR,
                         'customerGroupId' => self::CUSTOMER_TYPE_MAPPINGS[$priceModel->getCustomerGroupId()->getEndpoint()],
-                        'priceNet'        => $item->getNetPrice(),
-                        'quantity'        => $item->getQuantity(),
+                        'priceNet' => $item->getNetPrice(),
+                        'quantity' => $item->getQuantity(),
                     ];
                 }
             }
@@ -374,15 +378,15 @@ abstract class AbstractController
 
         // 2) Special prices
         foreach ($product->getSpecialPrices() as $specialModel) {
-            $from = $specialModel->getActiveFromDate()?->format('Y-m-d')   ?? null;
-            $until= $specialModel->getActiveUntilDate()?->format('Y-m-d') ?? null;
+            $from = $specialModel->getActiveFromDate()?->format('Y-m-d') ?? null;
+            $until = $specialModel->getActiveUntilDate()?->format('Y-m-d') ?? null;
             foreach ($specialModel->getItems() as $item) {
                 $result[self::PRICE_TYPE_SPECIAL][] = [
-                    'type'            => self::PRICE_TYPE_SPECIAL,
+                    'type' => self::PRICE_TYPE_SPECIAL,
                     'customerGroupId' => self::CUSTOMER_TYPE_MAPPINGS[$item->getCustomerGroupId()->getEndpoint()],
-                    'priceNet'        => $item->getPriceNet(),
-                    'from'            => $from,
-                    'until'           => $until,
+                    'priceNet' => $item->getPriceNet(),
+                    'from' => $from,
+                    'until' => $until,
                 ];
             }
         }
