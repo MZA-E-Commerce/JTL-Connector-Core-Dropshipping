@@ -41,11 +41,7 @@ class CustomerOrderController extends AbstractController implements PullInterfac
                 $order->setCurrencyIso($orderData['currencyIso']);
                 $order->setCreationDate(\DateTime::createFromFormat('U', $orderData['orderDateUnix']));
                 $order->setCustomerNote($orderData['customerComment']??'');
-
-                // Special case!
-                // e.g. ANP_SONDERPREIS=0|ANP_BEIGABE=0|ANP_KREDITKAUF=0
-                // todo: Add logic!
-                $order->setNote('ANP_SONDERPREIS=0|ANP_BEIGABE=0|ANP_KREDITKAUF=0');
+                $order->setNote('Bei Dropshipping: "Kunden-Ref.Nr./Auftragsreferenz"');
 
                 // Shipping address
                 $shippingAddress = new CustomerOrderShippingAddress();
@@ -53,6 +49,7 @@ class CustomerOrderController extends AbstractController implements PullInterfac
                 $shippingAddress->setFirstName($orderData['delivery']['firstName']);
                 $shippingAddress->setLastName($orderData['delivery']['lastName']);
                 $shippingAddress->setCompany($orderData['delivery']['company']??'');
+                $shippingAddress->setExtraAddressLine($orderData['delivery']['extraAddressLine']??'');
                 $shippingAddress->setCity($orderData['delivery']['city']);
                 $shippingAddress->setStreet($orderData['delivery']['street']);
                 $shippingAddress->setZipCode($orderData['delivery']['zip']);
@@ -68,6 +65,7 @@ class CustomerOrderController extends AbstractController implements PullInterfac
                 $billingAddress->setCompany($orderData['customer']['company']??'');
                 $billingAddress->setCity($orderData['customer']['city']);
                 $billingAddress->setStreet($orderData['customer']['street']);
+                $billingAddress->setExtraAddressLine($orderData['customer']['extraAddressLine']??'');
                 $billingAddress->setZipCode($orderData['customer']['zip']);
                 $billingAddress->setEMail($email);
                 $order->setBillingAddress($billingAddress);
@@ -82,6 +80,7 @@ class CustomerOrderController extends AbstractController implements PullInterfac
                     $customerOrderItem->setPriceGross($item['totalPrice']);
                     $customerOrderItem->setPrice($item['totalPriceNet']);
                     $customerOrderItem->setVat($item['vat']);
+                    $customerOrderItem->setNote('e.g. "ANP_SONDERPREIS=0|ANP_BEIGABE=0|ANP_KREDITKAUF=0"');
                     $order->addItem($customerOrderItem);
                 }
 
