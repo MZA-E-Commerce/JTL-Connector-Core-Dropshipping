@@ -10,6 +10,10 @@
     "api": {
       "url": "http://mza-nginx/api/jtl/connector",
       "key": "1234567890",
+      "auth": {
+        "username": "jtl-connector",
+        "password": "jtl-connector"
+      },
       "endpoints": {
         "getId": {
           "method": "GET",

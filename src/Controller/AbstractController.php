@@ -179,6 +179,7 @@ abstract class AbstractController
                 'X-API-KEY' => $this->config->get('pimcore.api.key'),
                 'Accept' => 'application/json',
             ],
+            'auth_basic' => [$this->config->get('pimcore.api.auth.username'), $this->config->get('pimcore.api.auth.password')]
         ]);
     }
 
