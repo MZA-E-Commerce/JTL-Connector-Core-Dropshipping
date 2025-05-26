@@ -26,7 +26,7 @@ class CustomerOrderController extends AbstractController implements PullInterfac
             $data = $response->toArray();
 
             if ($statusCode !== 200 || !isset($data['success']) || $data['success'] !== true) {
-                $this->logger->error('Pimcore getOrders error!');
+                $this->logger->error('Endpoint getOrders error!');
                 return [];
             }
 

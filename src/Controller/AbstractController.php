@@ -128,15 +128,18 @@ abstract class AbstractController
                     $identity->getEndpoint()
                 ));
             } else {
-                // Get Pimcore ID
+                // Get Endpoint ID
                 try {
-                    $pimcoreId = $this->getPimcoreId($model->getSku());
+                    $endpointId = $this->getEndpointId($model->getSku());
+                    if (empty($endpointId)) {
+                        throw new \Exception('Invalid/empty endpoint ID (SKU)');
+                    }
                 } catch (\Throwable $e) {
-                    $this->logger->error('Error fetching Pimcore ID for SKU ' . $model->getSku() . ': ' . $e->getMessage());
+                    $this->logger->error('Error fetching Endpoint ID for SKU ' . $model->getSku() . ': ' . $e->getMessage());
                     continue;
                 }
 
-                $identity = new Identity($pimcoreId, $identity->getHost());
+                $identity = new Identity($endpointId, $identity->getHost());
                 $model->setId($identity);
             }
 
@@ -159,13 +162,13 @@ abstract class AbstractController
      */
     protected function getEndpointUrl(string $endpointKey): string
     {
-        $apiKey = $this->config->get('pimcore.api.key');
+        $apiKey = $this->config->get('endpoint.api.key');
         if (empty($apiKey)) {
-            throw new \RuntimeException('Pimcore API key is not set');
+            throw new \RuntimeException('Endpoint API key is not set');
         }
 
-        $url = $this->config->get('pimcore.api.url');
-        return $url . $this->config->get('pimcore.api.endpoints.' . $endpointKey . '.url');
+        $url = $this->config->get('endpoint.api.url');
+        return $url . $this->config->get('endpoint.api.endpoints.' . $endpointKey . '.url');
     }
 
     /**
@@ -176,42 +179,22 @@ abstract class AbstractController
         $client = HttpClient::create();
         return $client->withOptions([
             'headers' => [
-                'X-API-KEY' => $this->config->get('pimcore.api.key'),
+                'X-Api-Key' => $this->config->get('endpoint.api.key'),
+                'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
             ],
-            'auth_basic' => [$this->config->get('pimcore.api.auth.username'), $this->config->get('pimcore.api.auth.password')]
+            //'auth_basic' => [$this->config->get('endpoint.api.auth.username'), $this->config->get('endpoint.api.auth.password')]
         ]);
     }
 
     /**
      * @param string $sku
-     * @return int
+     * @return string
      */
-    protected function getPimcoreId(string $sku): int
+    protected function getEndpointId(string $sku): string
     {
-        if (empty($sku)) {
-            throw new \RuntimeException('SKU is empty');
-        }
+        return $sku;
 
-        $url = $this->getEndpointUrl('getId');
-        $fullApiUrl = str_replace('{sku}', $sku, $url);
-        $client = $this->getHttpClient();
-
-        try {
-            $response = $client->request($this->config->get('pimcore.api.endpoints.getId.method'), $fullApiUrl);
-
-            $statusCode = $response->getStatusCode();
-            $data = $response->toArray();
-
-            if ($statusCode === 200 && isset($data['success']) && $data['success'] === true) {
-                return (int)$data['id'];
-            }
-
-            throw new \RuntimeException('Pimcore API error: ' . ($data['error'] ?? 'Unknown error'));
-
-        } catch (TransportExceptionInterface|HttpExceptionInterface|DecodingExceptionInterface $e) {
-            throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
-        }
     }
 
     /**
@@ -219,21 +202,21 @@ abstract class AbstractController
      * @param string $type
      * @return void
      */
-    protected function updateProductPimcore(Product $product, string $type = self::UPDATE_TYPE_PRODUCT): void
+    protected function updateProductEndpoint(Product $product, string $type = self::UPDATE_TYPE_PRODUCT): void
     {
-        $httpMethod = $this->config->get('pimcore.api.endpoints.' . $type . '.method');
+        $httpMethod = $this->config->get('endpoint.api.endpoints.' . $type . '.method');
         $client = $this->getHttpClient();
         $fullApiUrl = $this->getEndpointUrl($type);
 
-        // Set id of Pimcore product
+        // Set id of endpoint product
         $postData = [
-            'id' => $product->getId()->getEndpoint()
+            'artikelNr' => $product->getId()->getEndpoint()
         ];
 
         switch ($type) {
             case self::UPDATE_TYPE_PRODUCT_STOCK_LEVEL:
                 $this->logger->info('Updating product stock level (SKU: ' . $product->getSku() . ')');
-                $postData['stockLevel'] = $product->getStockLevel();
+                $postData['lagerbestand'] = $product->getStockLevel();
                 break;
             case self::UPDATE_TYPE_PRODUCT_PRICE:
                 $this->logger->info('Updating product price (SKU: ' . $product->getSku() . ')');
@@ -252,7 +235,7 @@ abstract class AbstractController
                 // Tax rate
                 $postData['taxRate'] = $product->getVat();
 
-                $this->logger->info('Updating product in Pimcore (SKU: ' . $product->getSku() . ')');
+                $this->logger->info('Updating product (SKU: ' . $product->getSku() . ')');
                 break;
         }
 
@@ -260,16 +243,15 @@ abstract class AbstractController
 
         try {
             $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
-
             $statusCode = $response->getStatusCode();
             $responseData = $response->toArray();
 
-            if ($statusCode === 200 && isset($responseData['success']) && $responseData['success'] === true) {
-                $this->logger->info('Product updated successfully in Pimcore (SKU: ' . $product->getSku() . ')');
+            if ($statusCode === 200 && isset($responseData['artikelNr']) && $responseData['artikelNr'] === $product->getSku()) {
+                $this->logger->info('Product updated successfully (SKU: ' . $product->getSku() . ')');
                 return;
             }
 
-            throw new \RuntimeException('Pimcore API error: ' . ($data['error'] ?? 'Unknown error'));
+            throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
 
         } catch (TransportExceptionInterface|HttpExceptionInterface|DecodingExceptionInterface $e) {
             throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);

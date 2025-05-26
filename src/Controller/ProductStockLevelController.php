@@ -14,7 +14,7 @@ class ProductStockLevelController extends AbstractController
 
     protected function updateModel(Product $model): void
     {
-        $this->updateProductPimcore($model, self::UPDATE_TYPE_PRODUCT_STOCK_LEVEL);
+        $this->updateProductEndpoint($model, self::UPDATE_TYPE_PRODUCT_STOCK_LEVEL);
     }
 }
 

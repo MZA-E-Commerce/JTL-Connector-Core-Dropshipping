@@ -15,7 +15,7 @@ class ProductController extends AbstractController
 
     protected function updateModel(Product $model): void
     {
-        $this->updateProductPimcore($model);
+        $this->updateProductEndpoint($model);
     }
 }
 

@@ -28,7 +28,7 @@ class CustomerController extends AbstractController implements PullInterface
             $data = $response->toArray();
 
             if ($statusCode !== 200 || !isset($data['success']) || $data['success'] !== true) {
-                $this->logger->error('Pimcore geCustomers error!');
+                $this->logger->error('Endpoint getCustomers error!');
                 return [];
             }
 

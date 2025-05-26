@@ -156,7 +156,9 @@ class Application
     protected Serializer              $serializer;
     private \PDO $pdo;
 
-    public const LOG_DIR = '/home/www/p689712/html/jtl-connector-pimcore/var/log';
+    public const LOG_DIR_PROD = '/home/www/p689712/html/jtl-connector-dropshipping/var/log';
+    public const LOG_DIR_DEV = '/var/www/html/var/log';
+    public const LOG_DIR = self::LOG_DIR_PROD;
 
     /**
      * Application constructor.
