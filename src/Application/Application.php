@@ -156,6 +156,8 @@ class Application
     protected Serializer              $serializer;
     private \PDO $pdo;
 
+    public const LOG_DIR = '/home/www/p689712/html/jtl-connector-pimcore/var/log';
+
     /**
      * Application constructor.
      *
@@ -327,7 +329,7 @@ class Application
     {
         $jtlRpc = Validate::string($this->httpRequest->get('jtlrpc', ''));
 
-        file_put_contents('/var/www/html/var/log/rpc_in.log', $jtlRpc . PHP_EOL . PHP_EOL, FILE_APPEND);
+        file_put_contents(Application::LOG_DIR . '/rpc_in.log', $jtlRpc . PHP_EOL . PHP_EOL, FILE_APPEND);
 
         $this->httpResponse->setLogger($this->loggerService->get(LoggerService::CHANNEL_RPC));
         $this->eventDispatcher->addSubscriber(new RequestParamsTransformSubscriber());
@@ -421,7 +423,7 @@ class Application
             }
         }
 
-        file_put_contents('/var/www/html/var/log/rpc_in.log', '##############################################' . PHP_EOL . PHP_EOL, FILE_APPEND);
+        file_put_contents(Application::LOG_DIR . '/rpc_in.log', '##############################################' . PHP_EOL . PHP_EOL, FILE_APPEND);
     }
 
     /**

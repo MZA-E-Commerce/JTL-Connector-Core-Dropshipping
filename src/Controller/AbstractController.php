@@ -2,6 +2,7 @@
 
 namespace Jtl\Connector\Core\Controller;
 
+use Jtl\Connector\Core\Application\Application;
 use Jtl\Connector\Core\Config\CoreConfigInterface;
 use Jtl\Connector\Core\Model\AbstractModel;
 use Jtl\Connector\Core\Model\Identity;
@@ -178,6 +179,7 @@ abstract class AbstractController
                 'X-API-KEY' => $this->config->get('pimcore.api.key'),
                 'Accept' => 'application/json',
             ],
+            'auth_basic' => [$this->config->get('pimcore.api.auth.username'), $this->config->get('pimcore.api.auth.password')]
         ]);
     }
 
@@ -254,7 +256,7 @@ abstract class AbstractController
                 break;
         }
 
-        file_put_contents('/var/www/html/var/log/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData) . PHP_EOL . PHP_EOL);
+        file_put_contents(Application::LOG_DIR . '/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData) . PHP_EOL . PHP_EOL);
 
         try {
             $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
