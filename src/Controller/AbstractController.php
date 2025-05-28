@@ -8,8 +8,6 @@ use Jtl\Connector\Core\Config\CoreConfigInterface;
 use Jtl\Connector\Core\Model\AbstractModel;
 use Jtl\Connector\Core\Model\Identity;
 use Jtl\Connector\Core\Model\Product;
-use Jtl\Connector\Core\Model\ProductPrice;
-use Jtl\Connector\Core\Model\QueryFilter;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;

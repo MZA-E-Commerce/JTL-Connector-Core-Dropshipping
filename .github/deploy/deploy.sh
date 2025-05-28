@@ -80,7 +80,7 @@ if [ "$DEPLOYMENT_CLEAN" != "false" ]; then
 fi
 
 # Checkout
-echo ssh $SSH_OPTIONS $DEPLOYMENT_TARGET " git --git-dir=$DEPLOYMENT_REPOPATH --work-tree=$DEPLOYMENT_WORKTREE checkout -f origin/$BRANCH"
+#echo ssh $SSH_OPTIONS $DEPLOYMENT_TARGET " git --git-dir=$DEPLOYMENT_REPOPATH --work-tree=$DEPLOYMENT_WORKTREE checkout -f origin/$BRANCH"
 #ssh $SSH_OPTIONS $DEPLOYMENT_TARGET " git --git-dir=$DEPLOYMENT_REPOPATH --work-tree=$DEPLOYMENT_WORKTREE checkout -f origin/$BRANCH"
 echo Checkout branch $BRANCH ...
 ssh $SSH_OPTIONS $DEPLOYMENT_TARGET cd $DEPLOYMENT_WORKTREE && git fetch origin $BRANCH && git checkout -f $BRANCH && git pull origin $BRANCH && git reset --hard origin/$BRANCH
