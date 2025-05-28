@@ -83,16 +83,6 @@ abstract class AbstractController
     protected const PRICE_TYPE_SPECIAL = 'special';
 
     /**
-     * @var string
-     */
-    protected const PRICE_TYPE_VK20 = 'VK20';
-
-    /**
-     * @var string
-     */
-    protected const PRICE_TYPE_VK21 = 'VK21';
-
-    /**
      * @var CoreConfigInterface
      */
     protected CoreConfigInterface $config;
@@ -222,6 +212,8 @@ abstract class AbstractController
         $postData = [];
         $postDataPrices = [];
 
+        $priceTypes = $this->config->get('endpoint.api.endpoints.setProductPrice.priceTypes');
+
         switch ($type) {
             case self::UPDATE_TYPE_PRODUCT_STOCK_LEVEL:
                 $this->logger->info('Updating product stock level (SKU: ' . $product->getSku() . ')');
@@ -230,13 +222,11 @@ abstract class AbstractController
                 break;
             case self::UPDATE_TYPE_PRODUCT_PRICE:
                 $this->logger->info('Updating product price (SKU: ' . $product->getSku() . ')');
-                $priceType = $this->config->get('endpoint.api.endpoints.' . $type . '.priceType', self::PRICE_TYPE_VK21);
-                $postDataPrices = $this->getPrices($product, $priceType);
+                $postDataPrices = $this->getPrices($product, $priceTypes);
                 break;
             case self::UPDATE_TYPE_PRODUCT: // Check JTL WaWi setting "Artikel komplett senden"!
                 $this->logger->info('Updating product (SKU: ' . $product->getSku() . ')');
-                $priceType = $this->config->get('endpoint.api.endpoints.' . $type . '.priceType', self::PRICE_TYPE_VK21);
-                $postDataPrices = $this->getPrices($product, $priceType);
+                $postDataPrices = $this->getPrices($product, $priceTypes);
                 break;
         }
 
@@ -289,20 +279,20 @@ abstract class AbstractController
 
     /**
      * @param Product $product
-     * @param string $priceType
+     * @param array $priceTypes
      * @return array
      */
-    private function getPrices(Product $product, string $priceType = 'VK21'): array
+    private function getPrices(Product $product, array $priceTypes): array
     {
-
         $result = [];
 
         // 1) regular prices
         foreach ($product->getPrices() as $priceModel) {
-            if ($priceModel->getCustomerGroupId()->getEndpoint() == self::CUSTOMER_TYPE_B2B || empty($priceModel->getCustomerGroupId()->getEndpoint())) {
-                // Skip empty or B2B prices
-                continue;
-            }
+            $priceType = match ($priceModel->getCustomerGroupId()->getEndpoint()) {
+                self::CUSTOMER_TYPE_B2B => $priceTypes['B2B'],
+                self::CUSTOMER_TYPE_B2C => $priceTypes['B2C'],
+                default => $priceTypes['UPE'], // "Netto VK" field from JTL WaWi
+            };
             foreach ($priceModel->getItems() as $item) {
                 $result[] = [
                     "vkId"=> 0,
@@ -319,9 +309,14 @@ abstract class AbstractController
         // 2) Special prices
         foreach ($product->getSpecialPrices() as $specialModel) {
             foreach ($specialModel->getItems() as $item) {
-                // Transfer only B2C prices
-                if ($item->getCustomerGroupId()->getEndpoint() == self::CUSTOMER_TYPE_B2B || empty($item->getCustomerGroupId()->getEndpoint())) {
-                    // Skip empty or B2B prices
+
+                $priceType = match ($item->getCustomerGroupId()->getEndpoint()) {
+                    self::CUSTOMER_TYPE_B2B => $priceTypes['B2B'],
+                    self::CUSTOMER_TYPE_B2C => $priceTypes['B2C'],
+                    default => null,
+                };
+
+                if (!$priceType) {
                     continue;
                 }
 
