@@ -65,22 +65,12 @@ abstract class AbstractController
     /**
      * @var string
      */
-    protected const CUSTOMER_TYPE_DEFAULT = self::CUSTOMER_TYPE_B2C;
+    const STUECKPREIS = 'stueckpreis';
 
     /**
      * @var string
      */
-    protected const PRICE_TYPE_RETAIL_NET = 'retail_price_net';
-
-    /**
-     * @var string
-     */
-    protected const PRICE_TYPE_REGULAR = 'regular';
-
-    /**
-     * @var string
-     */
-    protected const PRICE_TYPE_SPECIAL = 'special';
+    const SONDERPREIS = 'sonderpreis';
 
     /**
      * @var CoreConfigInterface
@@ -209,10 +199,11 @@ abstract class AbstractController
         $client = $this->getHttpClient();
         $fullApiUrl = $this->getEndpointUrl($type);
 
+        $fullApiUrl = str_replace('{sku}', $product->getSku(), $fullApiUrl);
+
         $postData = [];
         $postDataPrices = [];
-
-        $priceTypes = $this->config->get('endpoint.api.endpoints.setProductPrice.priceTypes');
+        $priceTypes = $this->config->get('priceTypes');
 
         switch ($type) {
             case self::UPDATE_TYPE_PRODUCT_STOCK_LEVEL:
@@ -221,49 +212,54 @@ abstract class AbstractController
                 $postData['lagerbestand'] = $product->getStockLevel();
                 break;
             case self::UPDATE_TYPE_PRODUCT_PRICE:
-                $this->logger->info('Updating product price (SKU: ' . $product->getSku() . ')');
-                $postDataPrices = $this->getPrices($product, $priceTypes);
-                break;
-            case self::UPDATE_TYPE_PRODUCT: // Check JTL WaWi setting "Artikel komplett senden"!
-                $this->logger->info('Updating product (SKU: ' . $product->getSku() . ')');
+                $this->logger->info('Updating product prices (SKU: ' . $product->getSku() . ')');
                 $postDataPrices = $this->getPrices($product, $priceTypes);
                 break;
         }
 
         if (!empty($postDataPrices)) {
-            file_put_contents(Application::LOG_DIR . '/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postDataPrices) . PHP_EOL . PHP_EOL);
-            foreach ($postDataPrices as $postData) {
-                try {
-                    $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
-                    $statusCode = $response->getStatusCode();
-                    $responseData = $response->toArray();
+            foreach ($postDataPrices as $endpointType => $data) {
 
-                    if ($statusCode === 200 && isset($responseData['artikelNr']) && $responseData['artikelNr'] === $product->getSku()) {
-                        $this->logger->info('Product price updated successfully (SKU: ' . $product->getSku() . ')');
-                        continue;
+                $fullApiUrl1 = str_replace('{endpointType}', $endpointType, $fullApiUrl);
+
+                foreach ($data as $priceType => $jsonData) {
+
+                    $fullApiUrl2 = str_replace('{priceType}', $priceType, $fullApiUrl1);
+
+                    file_put_contents(Application::LOG_DIR . '/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl2 . ' -> ' . json_encode($jsonData) . PHP_EOL . PHP_EOL, FILE_APPEND);
+
+                    try {
+                        $response = $client->request($httpMethod, $fullApiUrl2, ['json' => $jsonData]);
+                        $statusCode = $response->getStatusCode();
+                        $responseData = $response->toArray();
+
+                        if ($statusCode === 200 && isset($responseData['artikelNr']) && $responseData['artikelNr'] === $product->getSku()) {
+                            $this->logger->info('Product price updated successfully (SKU: ' . $product->getSku() . ')');
+                            continue;
+                        }
+
+                        throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
+
+                    } catch (TransportExceptionInterface|HttpExceptionInterface|DecodingExceptionInterface $e) {
+                        throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
                     }
-
-                    throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
-
-                } catch (TransportExceptionInterface|HttpExceptionInterface|DecodingExceptionInterface $e) {
-                    throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
                 }
             }
         }
 
         if (!empty($postData)) {
-            file_put_contents(Application::LOG_DIR . '/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData) . PHP_EOL . PHP_EOL);
+            file_put_contents(Application::LOG_DIR . '/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData) . PHP_EOL . PHP_EOL, FILE_APPEND);
             try {
-                $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
-                $statusCode = $response->getStatusCode();
-                $responseData = $response->toArray();
+               $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
+               $statusCode = $response->getStatusCode();
+               $responseData = $response->toArray();
 
-                if ($statusCode === 200 && isset($responseData['artikelNr']) && $responseData['artikelNr'] === $product->getSku()) {
-                    $this->logger->info('Product updated successfully (SKU: ' . $product->getSku() . ')');
-                    return;
-                }
+               if ($statusCode === 200 && isset($responseData['artikelNr']) && $responseData['artikelNr'] === $product->getSku()) {
+                   $this->logger->info('Product updated successfully (SKU: ' . $product->getSku() . ')');
+                   return;
+               }
 
-                throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
+               throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
 
             } catch (TransportExceptionInterface|HttpExceptionInterface|DecodingExceptionInterface $e) {
                 throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
@@ -294,14 +290,8 @@ abstract class AbstractController
                 default => $priceTypes['UPE'], // "Netto VK" field from JTL WaWi
             };
             foreach ($priceModel->getItems() as $item) {
-                $result[] = [
-                    "vkId"=> 0,
-                    "artikelNr" => $product->getSku(),
-                    "bezeichnung" => $priceType,
-                    "stueckpreis" => $item->getNetPrice(),
-                    "sonderpreis" => 0,
-                    "sonderpreisVon" => "",
-                    "sonderpreisBis" => ""
+                $result[self::STUECKPREIS][$priceType] = [
+                    "value" => $item->getNetPrice(),
                 ];
             }
         }
@@ -323,14 +313,10 @@ abstract class AbstractController
                 $from = ($dt = (clone $specialModel->getActiveFromDate())?->setTimezone(new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.') . substr($dt->format('u'), 0, 3) . 'Z';
                 $until = ($dt = (clone $specialModel->getActiveUntilDate())?->setTimezone(new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.') . substr($dt->format('u'), 0, 3) . 'Z';
 
-                $result[] = [
-                    "vkId"=> 0,
-                    "artikelNr" => $product->getSku(),
-                    "bezeichnung" => $priceType,
-                    "stueckpreis" => 0,
-                    "sonderpreis" => $item->getPriceNet(),
-                    "sonderpreisVon" => $from,
-                    "sonderpreisBis" => $until
+                $result[self::SONDERPREIS][$priceType] = [
+                    "value" => $item->getPriceNet(),
+                    "von" => $from,
+                    "bis" => $until
                 ];
             }
         }
