@@ -34,7 +34,7 @@ class CustomerOrderController extends AbstractController implements PullInterfac
 
             foreach ($data as $orderData) {
 
-                $identity = new Identity($orderData['auftragsNr'] . '_4', 0);
+                $identity = new Identity($orderData['auftragsNr'], 0);
                 $order = new CustomerOrder();
                 $order->setId($identity);
 

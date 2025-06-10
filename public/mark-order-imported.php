@@ -89,7 +89,7 @@ try {
     header('Content-Type: application/json');
     echo json_encode([
         'success' => true,
-        'message' => 'Order marked as imported',
+        'message' => 'Order marked as ' . ($reset ? 'reset' : 'imported'),
         'apiResponse' => $apiResponse,
         'auftragsNr' => $orderId
     ]);
