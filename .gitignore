@@ -11,3 +11,4 @@ tests/tmp/db.sqlite
 /var/connector.s3db-shm
 /var/connector.s3db-wal
 config/config.json
+.env.local

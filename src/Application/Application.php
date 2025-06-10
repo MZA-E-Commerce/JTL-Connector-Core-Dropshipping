@@ -158,7 +158,7 @@ class Application
 
     public const LOG_DIR_PROD = '/home/www/p689712/html/jtl-connector-dropshipping/var/log';
     public const LOG_DIR_DEV = '/var/www/html/var/log';
-    public const LOG_DIR = self::LOG_DIR_PROD;
+    public const LOG_DIR = self::LOG_DIR_DEV;
 
     /**
      * Application constructor.

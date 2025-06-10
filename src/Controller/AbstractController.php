@@ -63,6 +63,11 @@ abstract class AbstractController
     /**
      * @var string
      */
+    protected const UPDATE_TYPE_CUSTOMER_ORDERS = 'geCustomerOrders';
+
+    /**
+     * @var string
+     */
     const STUECKPREIS = 'stueckpreis';
 
     /**

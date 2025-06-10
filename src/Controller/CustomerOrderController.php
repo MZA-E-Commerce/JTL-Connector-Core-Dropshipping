@@ -7,6 +7,7 @@ use Jtl\Connector\Core\Model\CustomerOrderBillingAddress;
 use Jtl\Connector\Core\Model\CustomerOrderItem;
 use Jtl\Connector\Core\Model\CustomerOrderShippingAddress;
 use Jtl\Connector\Core\Model\Identity;
+use Jtl\Connector\Core\Model\KeyValueAttribute;
 use Jtl\Connector\Core\Model\Product;
 use Jtl\Connector\Core\Model\QueryFilter;
 
@@ -14,78 +15,111 @@ class CustomerOrderController extends AbstractController implements PullInterfac
 {
     public function pull(QueryFilter $queryFilter): array
     {
-        $endpointUrl = $this->getEndpointUrl('getOrders');
+        $endpointUrl = $this->getEndpointUrl(self::UPDATE_TYPE_CUSTOMER_ORDERS);
         $client = $this->getHttpClient();
 
         $orders = [];
 
         try {
+
             $response = $client->request('GET', $endpointUrl);
 
             $statusCode = $response->getStatusCode();
             $data = $response->toArray();
 
-            if ($statusCode !== 200 || !isset($data['success']) || $data['success'] !== true) {
-                $this->logger->error('Endpoint getOrders error!');
+            if ($statusCode !== 200) {
+                $this->logger->error('Endpoint ' . self::UPDATE_TYPE_CUSTOMER_ORDERS . ' error!');
                 return [];
             }
 
-            foreach ($data['orders'] as $orderData) {
-                $email = $orderData['customer']['email'];
+            foreach ($data as $orderData) {
 
-                $identity = new Identity($orderData['id'], 0);
+                $identity = new Identity($orderData['auftragsNr'] . '_4', 0);
                 $order = new CustomerOrder();
                 $order->setId($identity);
-                $order->setOrderNumber($orderData['orderNumber']);
+
+                $email = $orderData['kundenEmail'];
+                $positions = $orderData['positionen'] ?? [];
+                if (empty($positions)) {
+                    $this->logger->error('No positions found for order: ' . $orderData['transferID']);
+                    continue;
+                }
+
+                $order->setOrderNumber($orderData['auftragsNr']);
+
+                $attribute = new KeyValueAttribute();
+                $attribute->setKey('externeAuftragsnummer'); // oder 'order_number', 'order_id'
+                $attribute->setValue($orderData['externeAuftragsnummer']);
+                $order->addAttribute($attribute);
+                // Workflow will copy "externeAuftragsnummer" value to "Ext. Auftragsnummer" in WaWi
+
                 $order->setLanguageIso('de');
-                $order->setCurrencyIso($orderData['currencyIso']);
-                $order->setCreationDate(\DateTime::createFromFormat('U', $orderData['orderDateUnix']));
-                $order->setCustomerNote($orderData['customerComment']??'');
-                $order->setNote('Bei Dropshipping: "Kunden-Ref.Nr./Auftragsreferenz"');
+                $order->setCurrencyIso($orderData['waehrung']?? 'EUR');
+                $order->setCreationDate(\DateTime::createFromFormat('U', $orderData['bestelldatumUnix']));
+
+                $order->setCustomerNote($orderData['kommentar'] ?? '');
+
+                $attributeTransferId = new KeyValueAttribute();
+                $attributeTransferId->setKey('transferID');
+                $attributeTransferId->setValue($orderData['transferID'] ?? '');
+                $order->addAttribute($attributeTransferId);
+
+                $attributeOrderType = new KeyValueAttribute();
+                $attributeOrderType->setKey('auftragsArt');
+                $attributeOrderType->setValue($orderData['auftragsArt'] ?? '');
+                $order->addAttribute($attributeOrderType);
+
+                $attributeOrderNumberAu = new KeyValueAttribute();
+                $attributeOrderNumberAu->setKey('auftragsNr');
+                $attributeOrderNumberAu->setValue($orderData['auftragsNr'] ?? '');
+                $order->addAttribute($attributeOrderNumberAu);
+
+                $attributeOrderNumberBe = new KeyValueAttribute();
+                $attributeOrderNumberBe->setKey('bestellNr');
+                $attributeOrderNumberBe->setValue($orderData['bestellNr'] ?? '');
+                $order->addAttribute($attributeOrderNumberBe);
+
 
                 // Shipping address
                 $shippingAddress = new CustomerOrderShippingAddress();
-                $shippingAddress->setCountryIso($orderData['delivery']['country']);
-                $shippingAddress->setFirstName($orderData['delivery']['firstName']);
-                $shippingAddress->setLastName($orderData['delivery']['lastName']);
-                $shippingAddress->setCompany($orderData['delivery']['company']??'');
-                $shippingAddress->setExtraAddressLine($orderData['delivery']['extraAddressLine']??'');
-                $shippingAddress->setCity($orderData['delivery']['city']);
-                $shippingAddress->setStreet($orderData['delivery']['street']);
-                $shippingAddress->setZipCode($orderData['delivery']['zip']);
+                $shippingAddress->setCountryIso($orderData['kundenLand']);
+                $shippingAddress->setFirstName($orderData['lieferVorname']);
+                $shippingAddress->setLastName($orderData['lieferNachname']);
+                $shippingAddress->setCompany($orderData['lieferFirma']??'');
+                $shippingAddress->setExtraAddressLine($orderData['lieferAdresszusatz']??'');
+                $shippingAddress->setCity($orderData['lieferOrt']);
+                $shippingAddress->setStreet($orderData['lieferStrasse']);
+                $shippingAddress->setZipCode($orderData['lieferPlz']);
                 $shippingAddress->setEMail($email);
-                $shippingAddress->setCustomerId(new Identity($orderData['customer']['id']??'', 0));
                 $order->setShippingAddress($shippingAddress);
 
                 // Billing address
                 $billingAddress = new CustomerOrderBillingAddress();
-                $billingAddress->setCountryIso($orderData['customer']['country']);
-                $billingAddress->setFirstName($orderData['customer']['firstName']);
-                $billingAddress->setLastName($orderData['customer']['lastName']);
-                $billingAddress->setCompany($orderData['customer']['company']??'');
-                $billingAddress->setCity($orderData['customer']['city']);
-                $billingAddress->setStreet($orderData['customer']['street']);
-                $billingAddress->setExtraAddressLine($orderData['customer']['extraAddressLine']??'');
-                $billingAddress->setZipCode($orderData['customer']['zip']);
+                $billingAddress->setCountryIso($orderData['kundenLand']);
+                $billingAddress->setFirstName(''); // Drop shipping orders do not have a first name
+                $billingAddress->setLastName(''); // Drop shipping orders do not have a last name
+                $billingAddress->setCompany($orderData['kundenFirma']??'');
+                $billingAddress->setCity($orderData['kundenOrt']);
+                $billingAddress->setStreet($orderData['kundenStrasse']);
+                $billingAddress->setExtraAddressLine('');
+                $billingAddress->setZipCode($orderData['kundenPlz']);
                 $billingAddress->setEMail($email);
+                $billingAddress->setId(new Identity($orderData['kundenNr']??'', 0));
                 $order->setBillingAddress($billingAddress);
 
                 // Items
-                foreach ($orderData['items'] as $item) {
+                foreach ($positions as $item) {
+                    $note = $item['artikelattribute'] ?? '';
                     $customerOrderItem = new CustomerOrderItem();
-                    $customerOrderItem->setId(new Identity($item['productId'], 0));
-                    $customerOrderItem->setSku($item['sku']);
-                    $customerOrderItem->setName($item['name']);
-                    $customerOrderItem->setQuantity($item['quantity']);
-                    $customerOrderItem->setPriceGross($item['totalPrice']);
-                    $customerOrderItem->setPrice($item['totalPriceNet']);
-                    $customerOrderItem->setVat($item['vat']);
-                    $customerOrderItem->setNote('e.g. "ANP_SONDERPREIS=0|ANP_BEIGABE=0|ANP_KREDITKAUF=0"');
+                    $customerOrderItem->setId(new Identity($item['artikelID'], 0));
+                    $customerOrderItem->setSku($item['artikelNr']);
+                    $customerOrderItem->setQuantity($item['anzahl']);
+                    $customerOrderItem->setPriceGross($item['nettoVK']);
+                    $customerOrderItem->setPrice($item['haendlerpreis']);
+                    $customerOrderItem->setVat($item['mwStSatz']);
+                    $customerOrderItem->setNote($note);
                     $order->addItem($customerOrderItem);
                 }
-
-                $order->setTotalSum($orderData['totalSum']);
-                $order->setTotalSumGross($orderData['totalSumGross']);
 
                 $orders[] = $order;
             }
@@ -100,5 +134,10 @@ class CustomerOrderController extends AbstractController implements PullInterfac
     protected function updateModel(Product $model): void
     {
         // nothing to-do here
+    }
+
+    public static function processCustomerOrder(CustomerOrder $order)
+    {
+        return true;
     }
 }

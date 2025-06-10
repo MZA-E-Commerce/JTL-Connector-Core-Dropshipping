@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Jtl\Connector\Core\Controller;
 
-use DI\Container;
 use Jawira\CaseConverter\CaseConverterException;
 use Jtl\Connector\Core\Application\Application;
 use Jtl\Connector\Core\Authentication\TokenValidatorInterface;
@@ -26,7 +25,6 @@ use Jtl\Connector\Core\Model\ConnectorServerInfo;
 use Jtl\Connector\Core\Model\Features;
 use Jtl\Connector\Core\Model\Identities;
 use Jtl\Connector\Core\Model\Session;
-use Jtl\Connector\Core\Rpc\Warnings;
 use Jtl\Connector\Core\Serializer\Json;
 use Jtl\Connector\Core\System\Check;
 use Jtl\Connector\Core\Utilities\Str;
@@ -140,6 +138,9 @@ class ConnectorController implements LoggerAwareInterface
     {
         foreach ($ack->getIdentities() as $modelName => $identities) {
             $normalizedName = Str::toPascalCase($modelName);
+
+            file_put_contents(Application::LOG_DIR . '/names.log', $normalizedName . PHP_EOL . PHP_EOL, FILE_APPEND);
+
             if (!Model::isModel($normalizedName)) {
                 $this->logger->warning(
                     'ACK: Unknown core entity ({name})! Skipping related ack\'s...',

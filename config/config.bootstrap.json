@@ -6,38 +6,27 @@
     "password": "jtl-connector"
   },
   "token": "1234567890",
-  "pimcore": {
+  "priceTypes": {
+    "B2C": "VK21",
+    "B2B": "VK4",
+    "UPE": "VK24"
+  },
+  "endpoint": {
     "api": {
-      "url": "http://mza-nginx/api/jtl/connector",
+      "url": "https://domain.de/api",
       "key": "1234567890",
-      "auth": {
-        "username": "jtl-connector",
-        "password": "jtl-connector"
-      },
       "endpoints": {
-        "getId": {
-          "method": "GET",
-          "url": "/getId?sku={sku}"
-        },
         "setProductStockLevel": {
           "method": "POST",
-          "url": "/setProductStockLevel"
+          "url": "/artikel/lagerbestand"
         },
         "setProductPrice": {
-          "method": "POST",
-          "url": "/setProductPrice"
+          "method": "PUT",
+          "url": "/verkaufspreise/{sku}/{priceType}/{endpointType}"
         },
-        "setProductData": {
-          "method": "POST",
-          "url": "/setProductData"
-        },
-        "getOrders": {
+        "geCustomerOrders": {
           "method": "GET",
-          "url": "/getOrders"
-        },
-        "getCustomers": {
-          "method": "GET",
-          "url": "/getCustomers"
+          "url": "/transferauftraege/pending"
         }
       }
     }
