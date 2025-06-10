@@ -3,110 +3,18 @@
 // Autoloader einbinden
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// .env.local
-function loadEnvFile($file) {
-    if (!file_exists($file)) {
-        die('.env.local file not found');
-    }
-
-    $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        // Kommentare ignorieren
-        if (strpos(trim($line), '#') === 0) {
-            continue;
-        }
-
-        // KEY=VALUE parsen
-        if (strpos($line, '=') !== false) {
-            list($key, $value) = explode('=', $line, 2);
-            $key = trim($key);
-            $value = trim($value);
-
-            // Anführungszeichen entfernen
-            $value = trim($value, '"\'');
-
-            $_ENV[$key] = $value;
-            putenv("$key=$value");
-        }
-    }
-}
-
-// Load ENV-file data
-loadEnvFile(__DIR__ . '/../.env.local');
-
-// Get Token
-$webhookToken = $_ENV['WEBHOOK_TOKEN'] ?? '';
-
-if (empty($webhookToken)) {
-    die('WEBHOOK_TOKEN not configured in .env.local');
-}
-
-function logMessage($message) {
-    $logFile = __DIR__ . '/../var/log/webhook.log';
-    $timestamp = date('Y-m-d H:i:s');
-    file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND);
-}
-
-try {
-    // Check Request-Methode
-    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-        http_response_code(405);
-        die('Method not allowed');
-    }
-
-    // Validate Token
-    $headers = getallheaders();
-    $authToken = $headers['X-Webhook-Token'] ?? $_GET['token'] ?? '';
-
-    if ($authToken !== $webhookToken) {
-        logMessage('Unauthorized access attempt');
-        http_response_code(401);
-        die('Unauthorized');
-    }
-
-    // Get order id
-    $orderId = $_GET['auftragsNr'] ?? null;
-    $reset = isset($_GET['reset']) && $_GET['reset'];
-
-    if (!$orderId) {
-        http_response_code(400);
-        die('Missing "auftragsNr"');
-    }
-
-    if ($reset) {
-        logMessage("Resetting order: auftragsNr=$orderId");
-    } else {
-        logMessage("Processing order: auftragsNr=$orderId");
-    }
-
-    // Call ESB API
-    $apiResponse = markOrderAsImported($orderId, $reset);
-
-    // Optional: Order in processed_orders.json speichern
-    saveProcessedOrder($orderId);
-
-    // Response
-    header('Content-Type: application/json');
-    echo json_encode([
-        'success' => true,
-        'message' => 'Order marked as ' . ($reset ? 'reset' : 'imported'),
-        'apiResponse' => $apiResponse,
-        'auftragsNr' => $orderId
-    ]);
-
-} catch (Exception $e) {
-    logMessage('Error: ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => $e->getMessage()
-    ]);
-}
-
+/**
+ * @throws Exception
+ */
 function markOrderAsImported($orderId, bool $reset = false) {
     // Get API URL and Token from environment variables
-    $apiBaseUrl = $_ENV['API_URL'] ?? 'https://test-shop-service.mza-vertrieb.de/api';
+    $apiBaseUrl = $_ENV['API_URL'] ?? '';
     $apiKey = $_ENV['API_KEY'] ?? '';
+
+    if (empty($apiBaseUrl) || empty($apiKey)) {
+        logMessage("API_URL or API_KEY not configured in .env.local");
+        throw new Exception("API_URL or API_KEY not configured in .env.local");
+    }
 
     // URL: Replace orderId
     if ($reset) {
@@ -174,4 +82,118 @@ function saveProcessedOrder($orderId, bool $reset = false): void
         $processedOrders[] = $orderId;
         file_put_contents($file, json_encode($processedOrders));
     }
+}
+
+// .env.local
+function loadEnvFile($file): void
+{
+    if (!file_exists($file)) {
+        die('.env.local file not found');
+    }
+
+    $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        // Kommentare ignorieren
+        if (strpos(trim($line), '#') === 0) {
+            continue;
+        }
+
+        // KEY=VALUE parsen
+        if (strpos($line, '=') !== false) {
+            list($key, $value) = explode('=', $line, 2);
+            $key = trim($key);
+            $value = trim($value);
+
+            // Anführungszeichen entfernen
+            $value = trim($value, '"\'');
+
+            $_ENV[$key] = $value;
+            putenv("$key=$value");
+        }
+    }
+}
+
+function logMessage($message) {
+    $logFile = __DIR__ . '/../var/log/webhook.log';
+    $timestamp = date('Y-m-d H:i:s');
+    file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND);
+}
+
+// Load ENV-file data
+loadEnvFile(__DIR__ . '/../.env.local');
+
+var_dump($_ENV); // Debug: Show loaded environment variables
+
+// Get Token
+$webhookToken = $_ENV['WEBHOOK_TOKEN'] ?? '';
+$apiBaseUrl = $_ENV['API_URL'] ?? '';
+$apiKey = $_ENV['API_KEY'] ?? '';
+
+// Check if required environment variables are set
+if (empty($apiBaseUrl)) {
+    die('API_URL not configured in .env.local');
+}
+
+if (empty($apiKey)) {
+    die('API_KEY not configured in .env.local');
+}
+
+if (empty($webhookToken)) {
+    die('WEBHOOK_TOKEN not configured in .env.local');
+}
+
+try {
+    // Check Request-Methode
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        http_response_code(405);
+        die('Method not allowed');
+    }
+
+    // Validate Token
+    $headers = getallheaders();
+    $authToken = $headers['X-Webhook-Token'] ?? $_GET['token'] ?? '';
+
+    if ($authToken !== $webhookToken) {
+        logMessage('Unauthorized access attempt');
+        http_response_code(401);
+        die('Unauthorized');
+    }
+
+    // Get order id
+    $orderId = $_GET['auftragsNr'] ?? null;
+    $reset = isset($_GET['reset']) && $_GET['reset'];
+
+    if (!$orderId) {
+        http_response_code(400);
+        die('Missing "auftragsNr"');
+    }
+
+    if ($reset) {
+        logMessage("Resetting order: auftragsNr=$orderId");
+    } else {
+        logMessage("Processing order: auftragsNr=$orderId");
+    }
+
+    // Call ESB API
+    $apiResponse = markOrderAsImported($orderId, $reset);
+
+    // Optional: Order in processed_orders.json speichern
+    saveProcessedOrder($orderId);
+
+    // Response
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true,
+        'message' => 'Order marked as ' . ($reset ? 'reset' : 'imported'),
+        'apiResponse' => $apiResponse,
+        'auftragsNr' => $orderId
+    ]);
+
+} catch (Exception $e) {
+    logMessage('Error: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => $e->getMessage()
+    ]);
 }
