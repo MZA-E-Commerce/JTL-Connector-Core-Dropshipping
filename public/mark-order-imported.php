@@ -122,8 +122,6 @@ function logMessage($message) {
 // Load ENV-file data
 loadEnvFile(__DIR__ . '/../.env.local');
 
-var_dump($_ENV); // Debug: Show loaded environment variables
-
 // Get Token
 $webhookToken = $_ENV['WEBHOOK_TOKEN'] ?? '';
 $apiBaseUrl = $_ENV['API_URL'] ?? '';
