@@ -239,20 +239,17 @@ abstract class AbstractController
                 $this->logger->info('Updating product price (SKU: ' . $product->getSku() . ')');
                 // Prices
                 $postData['prices'] = $this->getPrices($product);
-
                 break;
             case self::UPDATE_TYPE_PRODUCT: // Check JTL WaWi setting "Artikel komplett senden"!
-                $this->logger->info('Updating full product (SKU: ' . $product->getSku() . ')');
+                $this->logger->info('Updating product in Pimcore (SKU: ' . $product->getSku() . ')');
                 // Prices
-                $postData['prices'] = $this->getPrices($product);
+                $postData['prices'] = $this->getPrices($product, true);
                 // Recommended retail price gross
                 $postData['uvpGross'] = round($product->getRecommendedRetailPrice(), 4, PHP_ROUND_HALF_UP);
                 // Recommended retail price net
                 $postData['uvpNet'] = round($product->getRecommendedRetailPrice() * (1 + ($product->getVat() / 100)), 4, PHP_ROUND_HALF_UP);
                 // Tax rate
                 $postData['taxRate'] = $product->getVat();
-
-                $this->logger->info('Updating product in Pimcore (SKU: ' . $product->getSku() . ')');
                 break;
         }
 
@@ -284,9 +281,10 @@ abstract class AbstractController
 
     /**
      * @param Product $product
+     * @param bool $excludeRegular
      * @return array
      */
-    private function getPrices(Product $product): array
+    private function getPrices(Product $product, bool $excludeRegular = false): array
     {
         /**
          * $specialPrices = false - UPDATE_TYPE_PRODUCT_PRICE ("productPrice.push")
@@ -357,23 +355,25 @@ abstract class AbstractController
             self::PRICE_TYPE_SPECIAL => []
         ];
 
-        // 1) regular prices
-        foreach ($product->getPrices() as $priceModel) {
-            foreach ($priceModel->getItems() as $item) {
-                if (empty($priceModel->getCustomerGroupId()->getEndpoint())) {
-                    $result[self::PRICE_TYPE_REGULAR][] = [
-                        'type' => self::PRICE_TYPE_RETAIL_NET,
-                        'customerGroupId' => self::CUSTOMER_TYPE_MAPPINGS[$priceModel->getCustomerGroupId()->getEndpoint()],
-                        'priceNet' => $item->getNetPrice(),
-                        'quantity' => $item->getQuantity(),
-                    ];
-                } else {
-                    $result[self::PRICE_TYPE_REGULAR][] = [
-                        'type' => self::PRICE_TYPE_REGULAR,
-                        'customerGroupId' => self::CUSTOMER_TYPE_MAPPINGS[$priceModel->getCustomerGroupId()->getEndpoint()],
-                        'priceNet' => $item->getNetPrice(),
-                        'quantity' => $item->getQuantity(),
-                    ];
+        if ($excludeRegular === false) {
+            // 1) regular prices
+            foreach ($product->getPrices() as $priceModel) {
+                foreach ($priceModel->getItems() as $item) {
+                    if (empty($priceModel->getCustomerGroupId()->getEndpoint())) {
+                        $result[self::PRICE_TYPE_REGULAR][] = [
+                            'type' => self::PRICE_TYPE_RETAIL_NET,
+                            'customerGroupId' => self::CUSTOMER_TYPE_MAPPINGS[$priceModel->getCustomerGroupId()->getEndpoint()],
+                            'priceNet' => $item->getNetPrice(),
+                            'quantity' => $item->getQuantity(),
+                        ];
+                    } else {
+                        $result[self::PRICE_TYPE_REGULAR][] = [
+                            'type' => self::PRICE_TYPE_REGULAR,
+                            'customerGroupId' => self::CUSTOMER_TYPE_MAPPINGS[$priceModel->getCustomerGroupId()->getEndpoint()],
+                            'priceNet' => $item->getNetPrice(),
+                            'quantity' => $item->getQuantity(),
+                        ];
+                    }
                 }
             }
         }
