@@ -25,14 +25,29 @@ abstract class AbstractController
     /**
      * @var string
      */
+    public const CUSTOMER_TYPE_B2B_DROPSHIPPING = '323ab1d7bf0b80017719d8404cbe4d46';
+
+    /**
+     * @var string
+     */
     public const CUSTOMER_TYPE_B2C = 'c2c6154f05b342d4b2da85e51ec805c9';
+
+    /**
+     * @var string
+     */
+    public const CUSTOMER_TYPE_B2B_DS_SHORTCUT = 'B2B-DS';
+
+    public const CUSTOMER_TYPE_B2B_SHORTCUT = 'B2B';
+
+    public const CUSTOMER_TYPE_B2C_SHORTCUT = 'B2C';
 
     /**
      * @var array
      */
     public const CUSTOMER_TYPE_MAPPINGS = [
-        self::CUSTOMER_TYPE_B2B => 'B2B',
-        self::CUSTOMER_TYPE_B2C => 'B2C',
+        self::CUSTOMER_TYPE_B2B => self::CUSTOMER_TYPE_B2B_SHORTCUT,
+        self::CUSTOMER_TYPE_B2B_DROPSHIPPING => self::CUSTOMER_TYPE_B2B_DS_SHORTCUT,
+        self::CUSTOMER_TYPE_B2C => self::CUSTOMER_TYPE_B2C_SHORTCUT,
         '' => 'CUSTOMER_TYPE_NOT_SET'
     ];
 
@@ -40,8 +55,9 @@ abstract class AbstractController
      * @var array
      */
     public const CUSTOMER_TYPE_MAPPINGS_REVERSE = [
-        'B2B' => self::CUSTOMER_TYPE_B2B,
-        'B2C' => self::CUSTOMER_TYPE_B2C,
+        self::CUSTOMER_TYPE_B2B_SHORTCUT => self::CUSTOMER_TYPE_B2B,
+        self::CUSTOMER_TYPE_B2B_DS_SHORTCUT => self::CUSTOMER_TYPE_B2B_DROPSHIPPING,
+        self::CUSTOMER_TYPE_B2C_SHORTCUT => self::CUSTOMER_TYPE_B2C,
         'CUSTOMER_TYPE_NOT_SET' => ''
     ];
 
@@ -229,7 +245,7 @@ abstract class AbstractController
 
                     $fullApiUrl2 = str_replace('{priceType}', $priceType, $fullApiUrl1);
 
-                    file_put_contents(Application::LOG_DIR . '/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl2 . ' -> ' . json_encode($jsonData) . PHP_EOL . PHP_EOL, FILE_APPEND);
+                    file_put_contents(Application::LOG_DIRECTORY . '/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl2 . ' -> ' . json_encode($jsonData) . PHP_EOL . PHP_EOL, FILE_APPEND);
 
                     try {
                         $response = $client->request($httpMethod, $fullApiUrl2, ['json' => $jsonData]);
@@ -251,7 +267,7 @@ abstract class AbstractController
         }
 
         if (!empty($postData)) {
-            file_put_contents(Application::LOG_DIR . '/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData) . PHP_EOL . PHP_EOL, FILE_APPEND);
+            file_put_contents(Application::LOG_DIRECTORY . '/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData) . PHP_EOL . PHP_EOL, FILE_APPEND);
             try {
                $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
                $statusCode = $response->getStatusCode();
@@ -288,8 +304,9 @@ abstract class AbstractController
         // 1) regular prices
         foreach ($product->getPrices() as $priceModel) {
             $priceType = match ($priceModel->getCustomerGroupId()->getEndpoint()) {
-                self::CUSTOMER_TYPE_B2B => $priceTypes['B2B'],
-                self::CUSTOMER_TYPE_B2C => $priceTypes['B2C'],
+                self::CUSTOMER_TYPE_B2B => $priceTypes[self::CUSTOMER_TYPE_B2B_SHORTCUT],
+                self::CUSTOMER_TYPE_B2B_DROPSHIPPING => $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT],
+                self::CUSTOMER_TYPE_B2C => $priceTypes[self::CUSTOMER_TYPE_B2C_SHORTCUT],
                 default => $priceTypes['UPE'], // "Netto VK" field from JTL WaWi
             };
             foreach ($priceModel->getItems() as $item) {
@@ -304,8 +321,9 @@ abstract class AbstractController
             foreach ($specialModel->getItems() as $item) {
 
                 $priceType = match ($item->getCustomerGroupId()->getEndpoint()) {
-                    self::CUSTOMER_TYPE_B2B => $priceTypes['B2B'],
-                    self::CUSTOMER_TYPE_B2C => $priceTypes['B2C'],
+                    self::CUSTOMER_TYPE_B2B => $priceTypes[self::CUSTOMER_TYPE_B2B_SHORTCUT],
+                    self::CUSTOMER_TYPE_B2B_DROPSHIPPING => $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT],
+                    self::CUSTOMER_TYPE_B2C => $priceTypes[self::CUSTOMER_TYPE_B2C_SHORTCUT],
                     default => null,
                 };
 

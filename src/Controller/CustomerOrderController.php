@@ -79,6 +79,10 @@ class CustomerOrderController extends AbstractController implements PullInterfac
                 $attributeOrderNumberBe->setValue($orderData['bestellNr'] ?? '');
                 $order->addAttribute($attributeOrderNumberBe);
 
+                $attributeCustomerGroup = new KeyValueAttribute();
+                $attributeCustomerGroup->setKey('customerGroup');
+                $attributeCustomerGroup->setValue(self::CUSTOMER_TYPE_B2B_DS_SHORTCUT);
+                $order->addAttribute($attributeCustomerGroup);
 
                 // Shipping address
                 $shippingAddress = new CustomerOrderShippingAddress();
@@ -98,7 +102,7 @@ class CustomerOrderController extends AbstractController implements PullInterfac
                 $billingAddress->setCountryIso($orderData['kundenLand']);
                 $billingAddress->setFirstName(''); // Drop shipping orders do not have a first name
                 $billingAddress->setLastName(''); // Drop shipping orders do not have a last name
-                $billingAddress->setCompany($orderData['kundenFirma']??'');
+                $billingAddress->setCompany(html_entity_decode($orderData['kundenFirma'])??'');
                 $billingAddress->setCity($orderData['kundenOrt']);
                 $billingAddress->setStreet($orderData['kundenStrasse']);
                 $billingAddress->setExtraAddressLine('');
@@ -113,6 +117,7 @@ class CustomerOrderController extends AbstractController implements PullInterfac
                     $customerOrderItem = new CustomerOrderItem();
                     $customerOrderItem->setId(new Identity($item['artikelID'], 0));
                     $customerOrderItem->setSku($item['artikelNr']);
+                    $customerOrderItem->setType('Artikel');
                     $customerOrderItem->setQuantity($item['anzahl']);
                     $customerOrderItem->setPriceGross($item['nettoVK']);
                     $customerOrderItem->setPrice($item['haendlerpreis']);
@@ -120,6 +125,8 @@ class CustomerOrderController extends AbstractController implements PullInterfac
                     $customerOrderItem->setNote($note);
                     $order->addItem($customerOrderItem);
                 }
+
+                $order->setPaymentModuleCode('B2B-Bezahlt'); // evtl. "7"
 
                 $orders[] = $order;
             }
