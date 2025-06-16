@@ -15,7 +15,7 @@ class PaymentController extends AbstractController implements PullInterface
 
     public function pull(QueryFilter $queryFilter): array
     {
-        file_put_contents(Application::LOG_DIR . '/paymentPull.log', json_encode($queryFilter) . PHP_EOL . PHP_EOL);
+        file_put_contents(Application::LOG_DIRECTORY . '/paymentPull.log', json_encode($queryFilter) . PHP_EOL . PHP_EOL);
 
         return [];
     }

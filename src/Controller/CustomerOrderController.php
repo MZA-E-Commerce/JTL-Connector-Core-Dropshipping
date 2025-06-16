@@ -41,7 +41,7 @@ class CustomerOrderController extends AbstractController implements PullInterfac
                 $order->setCurrencyIso($orderData['currencyIso']);
                 $order->setCreationDate(\DateTime::createFromFormat('U', $orderData['orderDateUnix']));
                 $order->setCustomerNote($orderData['customerComment']??'');
-                $order->setNote('Bei Dropshipping: "Kunden-Ref.Nr./Auftragsreferenz"');
+                $order->setNote('');
 
                 // Shipping address
                 $shippingAddress = new CustomerOrderShippingAddress();

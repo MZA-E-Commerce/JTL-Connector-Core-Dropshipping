@@ -253,7 +253,7 @@ abstract class AbstractController
                 break;
         }
 
-        file_put_contents(Application::LOG_DIR . '/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData) . PHP_EOL . PHP_EOL);
+        file_put_contents(Application::LOG_DIRECTORY . '/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData) . PHP_EOL . PHP_EOL);
 
         try {
             $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
