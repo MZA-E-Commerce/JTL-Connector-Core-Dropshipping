@@ -156,10 +156,6 @@ class Application
     protected Serializer              $serializer;
     private \PDO $pdo;
 
-    public const LOG_DIR_PROD = '/home/www/p689712/html/jtl-connector-dropshipping/var/log';
-    public const LOG_DIR_DEV = '/var/www/html/var/log';
-    public const LOG_DIRECTORY = self::LOG_DIR_PROD;
-
     /**
      * Application constructor.
      *
@@ -331,8 +327,6 @@ class Application
     {
         $jtlRpc = Validate::string($this->httpRequest->get('jtlrpc', ''));
 
-        file_put_contents(Application::LOG_DIRECTORY . '/rpc_in.log', $jtlRpc . PHP_EOL . PHP_EOL, FILE_APPEND);
-
         $this->httpResponse->setLogger($this->loggerService->get(LoggerService::CHANNEL_RPC));
         $this->eventDispatcher->addSubscriber(new RequestParamsTransformSubscriber());
         $this->eventDispatcher->addSubscriber(new FeaturesSubscriber());
@@ -424,8 +418,6 @@ class Application
                 $this->getSessionHandler()->gc((int)\ini_get('session.gc_maxlifetime'));
             }
         }
-
-        file_put_contents(Application::LOG_DIRECTORY . '/rpc_in.log', '##############################################' . PHP_EOL . PHP_EOL, FILE_APPEND);
     }
 
     /**

@@ -245,7 +245,7 @@ abstract class AbstractController
 
                     $fullApiUrl2 = str_replace('{priceType}', $priceType, $fullApiUrl1);
 
-                    file_put_contents(Application::LOG_DIRECTORY . '/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl2 . ' -> ' . json_encode($jsonData) . PHP_EOL . PHP_EOL, FILE_APPEND);
+                    $this->logger->info($httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData));
 
                     try {
                         $response = $client->request($httpMethod, $fullApiUrl2, ['json' => $jsonData]);
@@ -267,18 +267,20 @@ abstract class AbstractController
         }
 
         if (!empty($postData)) {
-            file_put_contents(Application::LOG_DIRECTORY . '/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData) . PHP_EOL . PHP_EOL, FILE_APPEND);
             try {
-               $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
-               $statusCode = $response->getStatusCode();
-               $responseData = $response->toArray();
 
-               if ($statusCode === 200 && isset($responseData['artikelNr']) && $responseData['artikelNr'] === $product->getSku()) {
-                   $this->logger->info('Product updated successfully (SKU: ' . $product->getSku() . ')');
-                   return;
-               }
+                $this->logger->info($httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData));
 
-               throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
+                $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
+                $statusCode = $response->getStatusCode();
+                $responseData = $response->toArray();
+
+                if ($statusCode === 200 && isset($responseData['artikelNr']) && $responseData['artikelNr'] === $product->getSku()) {
+                    $this->logger->info('Product updated successfully (SKU: ' . $product->getSku() . ')');
+                    return;
+                }
+
+                throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
 
             } catch (TransportExceptionInterface|HttpExceptionInterface|DecodingExceptionInterface $e) {
                 throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
