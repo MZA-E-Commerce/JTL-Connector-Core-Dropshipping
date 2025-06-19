@@ -4,11 +4,13 @@ namespace Jtl\Connector\Core\Controller;
 
 use Jtl\Connector\Core\Application\Application;
 use Jtl\Connector\Core\Config\CoreConfigInterface;
+use Jtl\Connector\Core\Logger\LoggerService;
 use Jtl\Connector\Core\Model\AbstractModel;
 use Jtl\Connector\Core\Model\Identity;
 use Jtl\Connector\Core\Model\Product;
 use Jtl\Connector\Core\Model\ProductPrice;
 use Jtl\Connector\Core\Model\QueryFilter;
+use Jtl\Connector\Core\Utilities\Validator\Validate;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
@@ -253,7 +255,7 @@ abstract class AbstractController
                 break;
         }
 
-        file_put_contents(Application::LOG_DIRECTORY . '/postData_' . $type . '.log', $httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData) . PHP_EOL . PHP_EOL);
+        $this->logger->info($httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData));
 
         try {
             $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
