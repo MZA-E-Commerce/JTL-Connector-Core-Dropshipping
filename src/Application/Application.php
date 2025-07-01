@@ -334,8 +334,6 @@ class Application
         MonologErrorHandler::register($this->loggerService->get(LoggerService::CHANNEL_ERROR));
         $requestPacket = RequestPacket::createFromJtlrpc($jtlRpc, $this->serializer);
 
-        #var_dump($requestPacket);die;
-
         $this->errorHandler->setRequestPacket($requestPacket);
         $responsePacket = null;
 
