@@ -20,6 +20,15 @@ jobs:
         env:
           DEPLOYMENT_SSH_SERVER: p689712.mittwaldserver.info
           DEPLOYMENT_SSH_USER: p689712
+          DEPLOYMENT_REPOPATH: /home/www/p689712/html/prod.jtl-connector-pimcore/.git
+          DEPLOYMENT_WORKTREE: /home/www/p689712/html/prod.jtl-connector-pimcore
+          COMPOSER_COMMAND: "/usr/local/bin/php /usr/local/bin/composer"
+      - name: "Deploy to Dev"
+        if: ${{ github.ref == 'refs/heads/develop' }}
+        run: /usr/bin/env bash ${GITHUB_WORKSPACE}/.github/deploy/deploy.sh
+        env:
+          DEPLOYMENT_SSH_SERVER: p689712.mittwaldserver.info
+          DEPLOYMENT_SSH_USER: p689712
           DEPLOYMENT_REPOPATH: /home/www/p689712/html/jtl-connector-pimcore/.git
           DEPLOYMENT_WORKTREE: /home/www/p689712/html/jtl-connector-pimcore
           COMPOSER_COMMAND: "/usr/local/bin/php /usr/local/bin/composer"
