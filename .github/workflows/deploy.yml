@@ -2,8 +2,9 @@ name: Deploy JTL-Connector (PIMCORE) to Mittwald
 
 on:
   push:
-    branches: [ master ]
-
+    branches:
+      - master
+      - develop
 jobs:
   deploy:
     runs-on: ubuntu-latest
