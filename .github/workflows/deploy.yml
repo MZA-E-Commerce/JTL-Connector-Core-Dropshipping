@@ -3,8 +3,8 @@ name: Deploy JTL-Connector (PIMCORE) to Mittwald
 on:
   push:
     branches:
-      - master
-      - develop
+      - main
+      - dev
 
 jobs:
   deploy:
@@ -16,8 +16,16 @@ jobs:
       - uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-      - name: "Deploy to Master"
-        if: ${{ github.ref == 'refs/heads/master' }}
+
+      - name: "Add deploy-server to known_hosts"
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ env.DEPLOYMENT_SSH_SERVER }}" >> ~/.ssh/known_hosts
+        env:
+          DEPLOYMENT_SSH_SERVER: p689712.mittwaldserver.info
+
+      - name: "Deploy to Production (main branch)"
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: /usr/bin/env bash ${GITHUB_WORKSPACE}/.github/deploy/deploy.sh
         env:
           DEPLOYMENT_SSH_SERVER: p689712.mittwaldserver.info
@@ -25,8 +33,9 @@ jobs:
           DEPLOYMENT_REPOPATH: /home/www/p689712/html/prod.jtl-connector-dropshipping/.git
           DEPLOYMENT_WORKTREE: /home/www/p689712/html/prod.jtl-connector-dropshipping
           COMPOSER_COMMAND: "/usr/local/bin/php /usr/local/bin/composer"
-      - name: "Deploy to Dev"
-        if: ${{ github.ref == 'refs/heads/develop' }}
+
+      - name: "Deploy to Testsystem (dev branch)"
+        if: ${{ github.ref == 'refs/heads/dev' }}
         run: /usr/bin/env bash ${GITHUB_WORKSPACE}/.github/deploy/deploy.sh
         env:
           DEPLOYMENT_SSH_SERVER: p689712.mittwaldserver.info
