@@ -237,6 +237,7 @@ abstract class AbstractController
         }
 
         if (!empty($postDataPrices)) {
+
             foreach ($postDataPrices as $endpointType => $data) {
 
                 $fullApiUrl1 = str_replace('{endpointType}', $endpointType, $fullApiUrl);
@@ -245,7 +246,20 @@ abstract class AbstractController
 
                     $fullApiUrl2 = str_replace('{priceType}', $priceType, $fullApiUrl1);
 
-                    $this->logger->info($httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData));
+                    $this->logger->info('API URLS | Method: ' . $httpMethod . ' | URL: ' . $fullApiUrl2 . ' | Data: ' . json_encode($jsonData));
+
+                    $serverName = $_SERVER['SERVER_NAME'] ?? gethostname();
+                    if ($serverName == 'jtl-connector.docker') {
+                        file_put_contents('/var/www/html/var/log/urls.log', 'API URLS 
+                            | Method: ' . $httpMethod . ' 
+                            | URL: ' . $fullApiUrl2 . ' 
+                            | Data: ' . print_r($jsonData, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
+                    } else {
+                        file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/urls.log', 'API URLS 
+                            | Method: ' . $httpMethod . ' 
+                            | URL: ' . $fullApiUrl2 . ' 
+                            | Data: ' . print_r($jsonData, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
+                    }
 
                     try {
                         $response = $client->request($httpMethod, $fullApiUrl2, ['json' => $jsonData]);
