@@ -35,11 +35,11 @@ abstract class AbstractController
     /**
      * @var string
      */
-    public const CUSTOMER_TYPE_B2B_DS_SHORTCUT = 'B2B-DS';
+    public const CUSTOMER_TYPE_B2B_DS_SHORTCUT = 'MZA B2B-DS'; // "MZA B2B-DS"
 
-    public const CUSTOMER_TYPE_B2B_SHORTCUT = 'B2B';
+    public const CUSTOMER_TYPE_B2B_SHORTCUT = 'MZA B2B';
 
-    public const CUSTOMER_TYPE_B2C_SHORTCUT = 'B2C';
+    public const CUSTOMER_TYPE_B2C_SHORTCUT = 'MZA B2C';
 
     /**
      * @var array

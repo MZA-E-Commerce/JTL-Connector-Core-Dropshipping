@@ -45,26 +45,11 @@ class GlobalDataController implements PullInterface, PushInterface
                 ->setNameHtml('&euro;')
         );
 
-        // CustomerGroups
-        $globalData->addCustomerGroup(
-            (new CustomerGroup())->setId(new Identity(AbstractController::CUSTOMER_TYPE_B2C))
-                ->setIsDefault(true)
-                ->setApplyNetPrice(false)
-                ->addI18n((new CustomerGroupI18n())->setName('Endkunden')->setLanguageIso('ger'))
-        );
-
-        $globalData->addCustomerGroup(
-            (new CustomerGroup())->setId(new Identity(AbstractController::CUSTOMER_TYPE_B2B))
-                ->setIsDefault(false)
-                ->setApplyNetPrice(true)
-                ->addI18n((new CustomerGroupI18n())->setName('Händler')->setLanguageIso('ger'))
-        );
-
         $globalData->addCustomerGroup(
             (new CustomerGroup())->setId(new Identity(AbstractController::CUSTOMER_TYPE_B2B_DROPSHIPPING))
                 ->setIsDefault(false)
                 ->setApplyNetPrice(true)
-                ->addI18n((new CustomerGroupI18n())->setName('Dropshipping-Händler')->setLanguageIso('ger'))
+                ->addI18n((new CustomerGroupI18n())->setName('MZA B2B-DS')->setLanguageIso('ger'))
         );
 
         // TaxRates
