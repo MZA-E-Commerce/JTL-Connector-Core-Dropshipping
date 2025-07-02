@@ -3,7 +3,6 @@
 namespace Jtl\Connector\Core\Controller;
 
 use DateTimeZone;
-use Jtl\Connector\Core\Application\Application;
 use Jtl\Connector\Core\Config\CoreConfigInterface;
 use Jtl\Connector\Core\Model\AbstractModel;
 use Jtl\Connector\Core\Model\Identity;
@@ -35,7 +34,7 @@ abstract class AbstractController
     /**
      * @var string
      */
-    public const CUSTOMER_TYPE_B2B_DS_SHORTCUT = 'MZA B2B-DS'; // "MZA B2B-DS"
+    public const CUSTOMER_TYPE_B2B_DS_SHORTCUT = 'MZA B2B-DS';
 
     public const CUSTOMER_TYPE_B2B_SHORTCUT = 'MZA B2B';
 
