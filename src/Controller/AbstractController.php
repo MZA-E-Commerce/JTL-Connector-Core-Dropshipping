@@ -19,46 +19,12 @@ abstract class AbstractController
     /**
      * @var string
      */
-    public const CUSTOMER_TYPE_B2B = 'b1d7b4cbe4d846f0b323a9d840800177';
-
-    /**
-     * @var string
-     */
     public const CUSTOMER_TYPE_B2B_DROPSHIPPING = '323ab1d7bf0b80017719d8404cbe4d46';
 
     /**
      * @var string
      */
-    public const CUSTOMER_TYPE_B2C = 'c2c6154f05b342d4b2da85e51ec805c9';
-
-    /**
-     * @var string
-     */
     public const CUSTOMER_TYPE_B2B_DS_SHORTCUT = 'MZA B2B-DS';
-
-    public const CUSTOMER_TYPE_B2B_SHORTCUT = 'MZA B2B';
-
-    public const CUSTOMER_TYPE_B2C_SHORTCUT = 'MZA B2C';
-
-    /**
-     * @var array
-     */
-    public const CUSTOMER_TYPE_MAPPINGS = [
-        self::CUSTOMER_TYPE_B2B => self::CUSTOMER_TYPE_B2B_SHORTCUT,
-        self::CUSTOMER_TYPE_B2B_DROPSHIPPING => self::CUSTOMER_TYPE_B2B_DS_SHORTCUT,
-        self::CUSTOMER_TYPE_B2C => self::CUSTOMER_TYPE_B2C_SHORTCUT,
-        '' => 'CUSTOMER_TYPE_NOT_SET'
-    ];
-
-    /**
-     * @var array
-     */
-    public const CUSTOMER_TYPE_MAPPINGS_REVERSE = [
-        self::CUSTOMER_TYPE_B2B_SHORTCUT => self::CUSTOMER_TYPE_B2B,
-        self::CUSTOMER_TYPE_B2B_DS_SHORTCUT => self::CUSTOMER_TYPE_B2B_DROPSHIPPING,
-        self::CUSTOMER_TYPE_B2C_SHORTCUT => self::CUSTOMER_TYPE_B2C,
-        'CUSTOMER_TYPE_NOT_SET' => ''
-    ];
 
     /**
      * @var string
@@ -319,9 +285,7 @@ abstract class AbstractController
         // 1) regular prices
         foreach ($product->getPrices() as $priceModel) {
             $priceType = match ($priceModel->getCustomerGroupId()->getEndpoint()) {
-                self::CUSTOMER_TYPE_B2B => $priceTypes[self::CUSTOMER_TYPE_B2B_SHORTCUT],
                 self::CUSTOMER_TYPE_B2B_DROPSHIPPING => $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT],
-                self::CUSTOMER_TYPE_B2C => $priceTypes[self::CUSTOMER_TYPE_B2C_SHORTCUT],
                 default => $priceTypes['UPE'], // "Netto VK" field from JTL WaWi
             };
             foreach ($priceModel->getItems() as $item) {
@@ -334,11 +298,8 @@ abstract class AbstractController
         // 2) Special prices
         foreach ($product->getSpecialPrices() as $specialModel) {
             foreach ($specialModel->getItems() as $item) {
-
                 $priceType = match ($item->getCustomerGroupId()->getEndpoint()) {
-                    self::CUSTOMER_TYPE_B2B => $priceTypes[self::CUSTOMER_TYPE_B2B_SHORTCUT],
                     self::CUSTOMER_TYPE_B2B_DROPSHIPPING => $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT],
-                    self::CUSTOMER_TYPE_B2C => $priceTypes[self::CUSTOMER_TYPE_B2C_SHORTCUT],
                     default => null,
                 };
 
