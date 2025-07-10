@@ -120,12 +120,10 @@ class CustomerOrderController extends AbstractController implements PullInterfac
                     #$customerOrderItem->setId(new Identity($item['artikelID'], $item['artikelNr']));
 
                     $customerOrderItem->setSku($item['artikelNr']);
-                    $customerOrderItem->setProductId(new Identity($item['artikelId'], 0));
+                    $customerOrderItem->setProductId(new Identity($item['artikelID'], 0));
                     $customerOrderItem->setType(CustomerOrderItem::TYPE_PRODUCT);
                     if (!empty($item['artikelBezeichnung'])) {
                         $customerOrderItem->setName($item['artikelBezeichnung']);
-                    } else {
-                        $customerOrderItem->setName('[remove fallback] Artikel: ' . $item['artikelNr']);
                     }
                     $customerOrderItem->setQuantity($item['anzahl']);
                     $customerOrderItem->setPrice($item['haendlerpreis']); // net price including discount
