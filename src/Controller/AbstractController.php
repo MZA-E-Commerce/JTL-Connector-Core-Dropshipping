@@ -226,6 +226,11 @@ abstract class AbstractController
                             | Data: ' . print_r($jsonData, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
                     }
 
+                    if ($jsonData['value'] <= 0) {
+                        $this->logger->info('Skipping update for price type ' . $priceType . ' with value ' . $jsonData['value'] . ' (SKU: ' . $product->getSku() . ')');
+                        continue;
+                    }
+
                     try {
                         $response = $client->request($httpMethod, $fullApiUrl2, ['json' => $jsonData]);
                         $statusCode = $response->getStatusCode();
