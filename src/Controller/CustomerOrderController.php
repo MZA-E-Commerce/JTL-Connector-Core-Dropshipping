@@ -115,12 +115,13 @@ class CustomerOrderController extends AbstractController implements PullInterfac
                 foreach ($positions as $item) {
                     $note = $item['artikelattribute'] ?? '';
                     $customerOrderItem = new CustomerOrderItem();
-                    $customerOrderItem->setId(new Identity($item['artikelNr'], 0));
 
+                    // $item['artikelID'] IS NOT the ID from JTL WaWi!!!! Not useful to use it here!
+                    #$customerOrderItem->setId(new Identity($item['artikelNr'], 0));
                     #$customerOrderItem->setId(new Identity($item['artikelID'], $item['artikelNr']));
+                    #$customerOrderItem->setProductId(new Identity($item['artikelID'], 0));
 
                     $customerOrderItem->setSku($item['artikelNr']);
-                    $customerOrderItem->setProductId(new Identity($item['artikelID'], 0));
                     $customerOrderItem->setType(CustomerOrderItem::TYPE_PRODUCT);
                     if (!empty($item['artikelBezeichnung'])) {
                         $customerOrderItem->setName($item['artikelBezeichnung']);
