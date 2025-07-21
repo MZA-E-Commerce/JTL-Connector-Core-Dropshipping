@@ -86,7 +86,7 @@ class CustomerOrderController extends AbstractController implements PullInterfac
 
                 // Shipping address
                 $shippingAddress = new CustomerOrderShippingAddress();
-                $shippingAddress->setCountryIso($orderData['kundenLand']);
+                $shippingAddress->setCountryIso($orderData['kundenLand'] ?? 'DE'); // Default to 'DE' if not set
                 $shippingAddress->setFirstName($orderData['lieferVorname']);
                 $shippingAddress->setLastName($orderData['lieferNachname']);
                 $shippingAddress->setCompany($orderData['lieferFirma']??'');
@@ -99,7 +99,7 @@ class CustomerOrderController extends AbstractController implements PullInterfac
 
                 // Billing address
                 $billingAddress = new CustomerOrderBillingAddress();
-                $billingAddress->setCountryIso($orderData['kundenLand']);
+                $billingAddress->setCountryIso($orderData['kundenLand'] ?? 'DE'); // Default to 'DE' if not set
                 $billingAddress->setFirstName(''); // Drop shipping orders do not have a first name
                 $billingAddress->setLastName(''); // Drop shipping orders do not have a last name
                 $billingAddress->setCompany(htmlspecialchars_decode(html_entity_decode($orderData['kundenFirma']))??'');
