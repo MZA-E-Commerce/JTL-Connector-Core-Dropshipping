@@ -299,6 +299,7 @@ abstract class AbstractController
                 foreach ($priceModel->getItems() as $item) {
                     $result[self::STUECKPREIS][$priceType] = [
                         "value" => $item->getNetPrice(),
+                        "debug" => time(),
                     ];
                     break;
                 }
@@ -310,7 +311,8 @@ abstract class AbstractController
         $uvpGross = $uvpNet * (1 + $vat / 100);
 
         $result[self::STUECKPREIS][$priceTypes['UPE']] = [
-            "value" => round($uvpGross, 4)
+            "value" => round($uvpGross, 4),
+            "debug" => 'UVP net: ' . $uvpNet . '| vat: ' . $vat . '% | UVP gross: ' . $uvpGross
         ];
 
         // 2) Special prices
