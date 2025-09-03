@@ -327,6 +327,8 @@ class Application
     {
         $jtlRpc = Validate::string($this->httpRequest->get('jtlrpc', ''));
 
+        file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/rpc.log', print_r($jtlRpc, true), FILE_APPEND);
+
         $this->httpResponse->setLogger($this->loggerService->get(LoggerService::CHANNEL_RPC));
         $this->eventDispatcher->addSubscriber(new RequestParamsTransformSubscriber());
         $this->eventDispatcher->addSubscriber(new FeaturesSubscriber());
