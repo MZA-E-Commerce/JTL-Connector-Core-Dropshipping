@@ -203,6 +203,7 @@ abstract class AbstractController
         }
 
         file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/postDataPrices.log', print_r($postDataPrices, true), FILE_APPEND);
+        file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/product.log', print_r($product, true), FILE_APPEND);
 
         if (!empty($postDataPrices)) {
 
