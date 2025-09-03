@@ -1650,6 +1650,7 @@ class Product extends AbstractIdentity implements TranslatableAttributesInterfac
      */
     public function getRecommendedRetailPrice(): float
     {
+        file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/getRecommendedRetailPrice.log', $this->getSku() . ' | ' . print_r($this->recommendedRetailPrice, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
         return $this->recommendedRetailPrice;
     }
 
@@ -1660,7 +1661,7 @@ class Product extends AbstractIdentity implements TranslatableAttributesInterfac
      */
     public function setRecommendedRetailPrice(float $recommendedRetailPrice): self
     {
-        file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/setRecommendedRetailPrice.log', print_r($recommendedRetailPrice, true), FILE_APPEND);
+        file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/setRecommendedRetailPrice.log', $this->getSku() . ' | ' . print_r($recommendedRetailPrice, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
         $this->recommendedRetailPrice = $recommendedRetailPrice;
 
         return $this;
