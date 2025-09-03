@@ -199,16 +199,6 @@ abstract class AbstractController
             case self::UPDATE_TYPE_PRODUCT_PRICE:
                 $this->logger->info('Updating product prices (SKU: ' . $product->getSku() . ')');
                 $postDataPrices = $this->getPrices($product, $priceTypes);
-
-                //$uvpNet = $product->getRecommendedRetailPrice();
-                $uvpGross = round($product->getRecommendedRetailPrice() * (1 + $product->getVat() / 100), 4);
-
-                $postDataPrices[self::STUECKPREIS][$priceTypes['UPE']] = [
-                    "value" => $uvpGross,
-                    "fileName" => $fileName,
-                    "vat" => $product->getVat(),
-                    "valueNet" => $product->getRecommendedRetailPrice()
-                ];
                 break;
         }
 
