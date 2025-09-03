@@ -216,11 +216,13 @@ abstract class AbstractController
                     $serverName = $_SERVER['SERVER_NAME'] ?? gethostname();
                     if ($serverName == 'jtl-connector.docker') {
                         file_put_contents('/var/www/html/var/log/urls.log', 'API URLS 
+                            | Date: ' . date('d.m.Y H:i:s') . ' 
                             | Method: ' . $httpMethod . ' 
                             | URL: ' . $fullApiUrl2 . ' 
                             | Data: ' . print_r($jsonData, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
                     } else {
-                        file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/urls.log', 'API URLS 
+                        file_put_contents('/home/www/p689712/html/jtl-connector-haendlershop/var/log/urls.log', 'API URLS 
+                            | Date: ' . date('d.m.Y H:i:s') . ' 
                             | Method: ' . $httpMethod . ' 
                             | URL: ' . $fullApiUrl2 . ' 
                             | Data: ' . print_r($jsonData, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
