@@ -346,11 +346,11 @@ class Product extends AbstractIdentity implements TranslatableAttributesInterfac
     #[Serializer\Accessor(getter: 'getPurchasePrice', setter: 'setPurchasePrice')]
     protected float $purchasePrice = 0.0;
 
-    /** @var double Optional recommended retail price (gross) */
-    #[Serializer\Type('double')]
+    /** @var float Optional recommended retail price (gross) */
+    #[Serializer\Type('float')]
     #[Serializer\SerializedName('recommendedRetailPrice')]
     #[Serializer\Accessor(getter: 'getRecommendedRetailPrice', setter: 'setRecommendedRetailPrice')]
-    protected float $recommendedRetailPrice = 0.0;
+    protected float $recommendedRetailPrice = 1.0;
 
     /** @var string Optional serial number */
     #[Serializer\Type('string')]
