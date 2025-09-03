@@ -208,6 +208,8 @@ abstract class AbstractController
                 break;
         }
 
+        file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/postDataPrices.log', print_r($postDataPrices, true), FILE_APPEND);
+
         if (!empty($postDataPrices)) {
 
             foreach ($postDataPrices as $endpointType => $data) {
