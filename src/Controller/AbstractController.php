@@ -292,14 +292,6 @@ abstract class AbstractController
     {
         $result = [];
 
-        $vat = $product->getVat();
-        $uvpNet = $product->getRecommendedRetailPrice();
-        $uvpGross = $uvpNet * (1 + $vat / 100);
-
-        $result[self::STUECKPREIS][$priceTypes['UPE']] = [
-            "value" => round($uvpGross, 4)
-        ];
-
         // 1) regular prices
         foreach ($product->getPrices() as $priceModel) {
             if ($priceModel->getCustomerGroupId()->getEndpoint() == self::CUSTOMER_TYPE_B2B_DROPSHIPPING) {
@@ -312,6 +304,14 @@ abstract class AbstractController
                 }
             }
         }
+
+        $vat = $product->getVat();
+        $uvpNet = $product->getRecommendedRetailPrice();
+        $uvpGross = $uvpNet * (1 + $vat / 100);
+
+        $result[self::STUECKPREIS][$priceTypes['UPE']] = [
+            "value" => round($uvpGross, 4)
+        ];
 
         // 2) Special prices
         foreach ($product->getSpecialPrices() as $specialModel) {
