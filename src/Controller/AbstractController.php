@@ -198,6 +198,13 @@ abstract class AbstractController
             case self::UPDATE_TYPE_PRODUCT_PRICE:
                 $this->logger->info('Updating product prices (SKU: ' . $product->getSku() . ')');
                 $postDataPrices = $this->getPrices($product, $priceTypes);
+
+                //$uvpNet = $product->getRecommendedRetailPrice();
+                $uvpGross = round($product->getRecommendedRetailPrice() * (1 + $product->getVat() / 100), 4);
+
+                $postDataPrices[self::STUECKPREIS][$priceTypes['UPE']] = [
+                    "value" => $uvpGross,
+                ];
                 break;
         }
 
@@ -292,7 +299,7 @@ abstract class AbstractController
         // 1) regular prices
         foreach ($product->getPrices() as $priceModel) {
 
-            file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/prices.log', print_r($priceModel, true), FILE_APPEND);
+            #file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/prices.log', print_r($priceModel, true), FILE_APPEND);
 
             $priceType = match ($priceModel->getCustomerGroupId()->getEndpoint()) {
                 self::CUSTOMER_TYPE_B2B_DROPSHIPPING => $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT],
