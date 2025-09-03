@@ -204,6 +204,7 @@ abstract class AbstractController
 
                 $postDataPrices[self::STUECKPREIS][$priceTypes['UPE']] = [
                     "value" => $uvpGross,
+                    "value2" => $product->getRecommendedRetailPrice(),
                 ];
                 break;
         }
