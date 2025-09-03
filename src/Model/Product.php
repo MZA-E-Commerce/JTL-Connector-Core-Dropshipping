@@ -1660,6 +1660,7 @@ class Product extends AbstractIdentity implements TranslatableAttributesInterfac
      */
     public function setRecommendedRetailPrice(float $recommendedRetailPrice): self
     {
+        file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/setRecommendedRetailPrice.log', print_r($recommendedRetailPrice, true), FILE_APPEND);
         $this->recommendedRetailPrice = $recommendedRetailPrice;
 
         return $this;
