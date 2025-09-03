@@ -303,12 +303,8 @@ abstract class AbstractController
 
             #file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/prices.log', print_r($priceModel, true), FILE_APPEND);
 
-            $priceType = match ($priceModel->getCustomerGroupId()->getEndpoint()) {
-                self::CUSTOMER_TYPE_B2B_DROPSHIPPING => $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT],
-                default => $priceTypes['UPE'],
-            };
             foreach ($priceModel->getItems() as $item) {
-                $result[self::STUECKPREIS][$priceType] = [
+                $result[self::STUECKPREIS][$priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT]] = [
                     "value" => $item->getNetPrice(),
                 ];
             }
@@ -317,19 +313,11 @@ abstract class AbstractController
         // 2) Special prices
         foreach ($product->getSpecialPrices() as $specialModel) {
             foreach ($specialModel->getItems() as $item) {
-                $priceType = match ($item->getCustomerGroupId()->getEndpoint()) {
-                    self::CUSTOMER_TYPE_B2B_DROPSHIPPING => $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT],
-                    default => null,
-                };
-
-                if (!$priceType) {
-                    continue;
-                }
 
                 $from = ($dt = (clone $specialModel->getActiveFromDate())?->setTimezone(new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.') . substr($dt->format('u'), 0, 3) . 'Z';
                 $until = ($dt = (clone $specialModel->getActiveUntilDate())?->setTimezone(new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.') . substr($dt->format('u'), 0, 3) . 'Z';
 
-                $result[self::SONDERPREIS][$priceType] = [
+                $result[self::SONDERPREIS][$priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT]] = [
                     "value" => $item->getPriceNet(),
                     "von" => $from,
                     "bis" => $until
