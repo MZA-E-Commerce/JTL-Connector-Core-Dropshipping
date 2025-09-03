@@ -302,15 +302,24 @@ abstract class AbstractController
     {
         $result = [];
 
+        $vat = $product->getVat();
+        $uvpNet = $product->getRecommendedRetailPrice();
+        $uvpGross = $uvpNet * (1 + $vat / 100);
+
+        $result[self::STUECKPREIS][$priceTypes['UPE']] = [
+            "value" => round($uvpGross, 4)
+        ];
+
         // 1) regular prices
         foreach ($product->getPrices() as $priceModel) {
-
-            #file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/prices.log', print_r($priceModel, true), FILE_APPEND);
-
-            foreach ($priceModel->getItems() as $item) {
-                $result[self::STUECKPREIS][$priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT]] = [
-                    "value" => $item->getNetPrice(),
-                ];
+            if ($priceModel->getCustomerGroupId()->getEndpoint() == self::CUSTOMER_TYPE_B2B_DROPSHIPPING) {
+                $priceType = $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT];
+                foreach ($priceModel->getItems() as $item) {
+                    $result[self::STUECKPREIS][$priceType] = [
+                        "value" => $item->getNetPrice(),
+                    ];
+                    break;
+                }
             }
         }
 
@@ -318,10 +327,19 @@ abstract class AbstractController
         foreach ($product->getSpecialPrices() as $specialModel) {
             foreach ($specialModel->getItems() as $item) {
 
+                $priceType = match ($item->getCustomerGroupId()->getEndpoint()) {
+                    self::CUSTOMER_TYPE_B2B_DROPSHIPPING => $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT],
+                    default => null,
+                };
+
+                if (!$priceType) {
+                    continue;
+                }
+
                 $from = ($dt = (clone $specialModel->getActiveFromDate())?->setTimezone(new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.') . substr($dt->format('u'), 0, 3) . 'Z';
                 $until = ($dt = (clone $specialModel->getActiveUntilDate())?->setTimezone(new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.') . substr($dt->format('u'), 0, 3) . 'Z';
 
-                $result[self::SONDERPREIS][$priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT]] = [
+                $result[self::SONDERPREIS][$priceType] = [
                     "value" => $item->getPriceNet(),
                     "von" => $from,
                     "bis" => $until
