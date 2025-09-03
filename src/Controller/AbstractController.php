@@ -291,9 +291,12 @@ abstract class AbstractController
 
         // 1) regular prices
         foreach ($product->getPrices() as $priceModel) {
+
+            file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/prices.log', print_r($priceModel, true), FILE_APPEND);
+
             $priceType = match ($priceModel->getCustomerGroupId()->getEndpoint()) {
                 self::CUSTOMER_TYPE_B2B_DROPSHIPPING => $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT],
-                default => $priceTypes['UPE'], // "Netto VK" field from JTL WaWi
+                default => $priceTypes['UPE'],
             };
             foreach ($priceModel->getItems() as $item) {
                 $result[self::STUECKPREIS][$priceType] = [
