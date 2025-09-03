@@ -205,7 +205,9 @@ abstract class AbstractController
 
                 $postDataPrices[self::STUECKPREIS][$priceTypes['UPE']] = [
                     "value" => $uvpGross,
-                    "fileName" => $fileName
+                    "fileName" => $fileName,
+                    "vat" => $product->getVat(),
+                    "valueNet" => $product->getRecommendedRetailPrice()
                 ];
                 break;
         }
