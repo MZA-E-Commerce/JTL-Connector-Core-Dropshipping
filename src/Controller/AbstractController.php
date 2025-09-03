@@ -175,9 +175,10 @@ abstract class AbstractController
     /**
      * @param Product $product
      * @param string $type
+     * @param string $fileName
      * @return void
      */
-    protected function updateProductEndpoint(Product $product, string $type = self::UPDATE_TYPE_PRODUCT): void
+    protected function updateProductEndpoint(Product $product, string $type = self::UPDATE_TYPE_PRODUCT, string $fileName): void
     {
         $httpMethod = $this->config->get('endpoint.api.endpoints.' . $type . '.method');
         $client = $this->getHttpClient();
@@ -204,7 +205,7 @@ abstract class AbstractController
 
                 $postDataPrices[self::STUECKPREIS][$priceTypes['UPE']] = [
                     "value" => $uvpGross,
-                    "value2" => $product->getRecommendedRetailPrice(),
+                    "fileName" => $fileName
                 ];
                 break;
         }
