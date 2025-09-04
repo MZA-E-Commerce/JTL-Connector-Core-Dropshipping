@@ -346,11 +346,11 @@ class Product extends AbstractIdentity implements TranslatableAttributesInterfac
     #[Serializer\Accessor(getter: 'getPurchasePrice', setter: 'setPurchasePrice')]
     protected float $purchasePrice = 0.0;
 
-    /** @var float Optional recommended retail price (gross) */
+    /** @var ?float Optional recommended retail price (gross) */
     #[Serializer\Type('float')]
     #[Serializer\SerializedName('recommendedRetailPrice')]
     #[Serializer\Accessor(getter: 'getRecommendedRetailPrice', setter: 'setRecommendedRetailPrice')]
-    protected float $recommendedRetailPrice = 1.0;
+    protected ?float $recommendedRetailPrice = null;
 
     /** @var string Optional serial number */
     #[Serializer\Type('string')]
@@ -1646,11 +1646,13 @@ class Product extends AbstractIdentity implements TranslatableAttributesInterfac
     }
 
     /**
-     * @return float Optional recommended retail price (gross)
+     * @return ?float Optional recommended retail price (gross)
      */
-    public function getRecommendedRetailPrice(): float
+    public function getRecommendedRetailPrice(): ?float
     {
-        file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/getRecommendedRetailPrice.log', $this->getSku() . ' | ' . print_r($this->recommendedRetailPrice, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
+        if ($_SERVER['SERVER_NAME'] ?? gethostname() == 'jtl-connector.docker') {
+            file_put_contents('/var/www/html/var/log/getRecommendedRetailPrice.log', $this->getSku() . ' | ' . print_r($this->recommendedRetailPrice, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
+        }
         return $this->recommendedRetailPrice;
     }
 
@@ -1661,7 +1663,9 @@ class Product extends AbstractIdentity implements TranslatableAttributesInterfac
      */
     public function setRecommendedRetailPrice(float $recommendedRetailPrice): self
     {
-        file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/setRecommendedRetailPrice.log', $this->getSku() . ' | ' . print_r($recommendedRetailPrice, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
+        if ($_SERVER['SERVER_NAME'] ?? gethostname() == 'jtl-connector.docker') {
+            file_put_contents('/var/www/html/var/log/setRecommendedRetailPrice.log', $this->getSku() . ' | ' . print_r($recommendedRetailPrice, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
+        }
         $this->recommendedRetailPrice = $recommendedRetailPrice;
 
         return $this;

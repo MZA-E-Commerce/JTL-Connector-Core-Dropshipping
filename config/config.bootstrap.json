@@ -24,6 +24,10 @@
           "method": "PUT",
           "url": "/verkaufspreise/{sku}/{priceType}/{endpointType}"
         },
+        "setProductData": {
+          "method": "PUT",
+          "url": "/verkaufspreise/{sku}/{priceType}/{endpointType}"
+        },
         "geCustomerOrders": {
           "method": "GET",
           "url": "/transferauftraege/pending"

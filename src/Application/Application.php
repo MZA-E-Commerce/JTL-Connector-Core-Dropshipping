@@ -327,7 +327,9 @@ class Application
     {
         $jtlRpc = Validate::string($this->httpRequest->get('jtlrpc', ''));
 
-        file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/rpc.log', print_r($jtlRpc, true), FILE_APPEND);
+        if ($_SERVER['SERVER_NAME'] ?? gethostname() == 'jtl-connector.docker') {
+            file_put_contents('/var/www/html/var/log/rpc.log', print_r($jtlRpc, true), FILE_APPEND);
+        }
 
         $this->httpResponse->setLogger($this->loggerService->get(LoggerService::CHANNEL_RPC));
         $this->eventDispatcher->addSubscriber(new RequestParamsTransformSubscriber());

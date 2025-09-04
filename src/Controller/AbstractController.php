@@ -44,7 +44,7 @@ abstract class AbstractController
     /**
      * @var string
      */
-    protected const UPDATE_TYPE_CUSTOMER_ORDERS = 'geCustomerOrders';
+    protected const UPDATE_TYPE_CUSTOMER_ORDERS = 'getCustomerOrders';
 
     /**
      * @var string
@@ -175,10 +175,9 @@ abstract class AbstractController
     /**
      * @param Product $product
      * @param string $type
-     * @param string $fileName
      * @return void
      */
-    protected function updateProductEndpoint(Product $product, string $type = self::UPDATE_TYPE_PRODUCT, string $fileName): void
+    protected function updateProductEndpoint(Product $product, string $type = self::UPDATE_TYPE_PRODUCT): void
     {
         $httpMethod = $this->config->get('endpoint.api.endpoints.' . $type . '.method');
         $client = $this->getHttpClient();
@@ -198,25 +197,35 @@ abstract class AbstractController
                 break;
             case self::UPDATE_TYPE_PRODUCT_PRICE:
                 $this->logger->info('Updating product prices (SKU: ' . $product->getSku() . ')');
-                $postDataPrices = $this->getPrices($product, $priceTypes);
+                $postDataPrices = $this->getPrices($product, $priceTypes, self::UPDATE_TYPE_PRODUCT_PRICE);
+                break;
+            case self::UPDATE_TYPE_PRODUCT:
+                $this->logger->info('Updating product data (SKU: ' . $product->getSku() . ')');
+
+                $tmpUpeData = [];
+                $uvpNet = $product->getRecommendedRetailPrice();
+                if (!is_null($uvpNet)) {
+                    $vat = $product->getVat();
+                    $uvpGross = $uvpNet * (1 + $vat / 100);
+                    $tmpUpeData[self::STUECKPREIS][$priceTypes['UPE']] = [
+                        "value" => round($uvpGross, 4)
+                    ];
+                }
+                $postDataPrices = array_merge_recursive($tmpUpeData, $this->getPrices($product, $priceTypes, self::UPDATE_TYPE_PRODUCT));
                 break;
         }
 
-        file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/postDataPrices.log', print_r($postDataPrices, true), FILE_APPEND);
-        file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/product.log', print_r($product, true), FILE_APPEND);
+        if ($_SERVER['SERVER_NAME'] ?? gethostname() == 'jtl-connector.docker') {
+            file_put_contents('/var/www/html/var/log//postDataPrices.log', print_r($postDataPrices, true), FILE_APPEND);
+        }
 
         if (!empty($postDataPrices)) {
-
+            $errors = [];
             foreach ($postDataPrices as $endpointType => $data) {
-
                 $fullApiUrl1 = str_replace('{endpointType}', $endpointType, $fullApiUrl);
-
                 foreach ($data as $priceType => $jsonData) {
-
                     $fullApiUrl2 = str_replace('{priceType}', $priceType, $fullApiUrl1);
-
                     $this->logger->info('API URLS | Method: ' . $httpMethod . ' | URL: ' . $fullApiUrl2 . ' | Data: ' . json_encode($jsonData));
-
                     $serverName = $_SERVER['SERVER_NAME'] ?? gethostname();
                     if ($serverName == 'jtl-connector.docker') {
                         file_put_contents('/var/www/html/var/log/urls.log', 'API URLS 
@@ -232,11 +241,6 @@ abstract class AbstractController
                             | Data: ' . print_r($jsonData, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
                     }
 
-                    if ($jsonData['value'] <= 0) {
-                        $this->logger->info('Skipping update for price type ' . $priceType . ' with value ' . $jsonData['value'] . ' (SKU: ' . $product->getSku() . ')');
-                        continue;
-                    }
-
                     try {
                         $response = $client->request($httpMethod, $fullApiUrl2, ['json' => $jsonData]);
                         $statusCode = $response->getStatusCode();
@@ -244,23 +248,20 @@ abstract class AbstractController
 
                         if ($statusCode === 200 && isset($responseData['artikelNr']) && $responseData['artikelNr'] === $product->getSku()) {
                             $this->logger->info('Product price updated successfully (SKU: ' . $product->getSku() . ')');
-                            continue;
                         }
-
-                        throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
-
                     } catch (TransportExceptionInterface|HttpExceptionInterface|DecodingExceptionInterface $e) {
-                        throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
+                        $errors[] = 'HTTP request failed: ' . $e->getMessage();
                     }
                 }
+            }
+            if (!empty($errors)) {
+                throw new \RuntimeException('HTTP request failed: ' . implode('; ', $errors), 500);
             }
         }
 
         if (!empty($postData)) {
             try {
-
                 $this->logger->info($httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData));
-
                 $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
                 $statusCode = $response->getStatusCode();
                 $responseData = $response->toArray();
@@ -269,9 +270,7 @@ abstract class AbstractController
                     $this->logger->info('Product updated successfully (SKU: ' . $product->getSku() . ')');
                     return;
                 }
-
                 throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
-
             } catch (TransportExceptionInterface|HttpExceptionInterface|DecodingExceptionInterface $e) {
                 throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
             }
@@ -289,7 +288,7 @@ abstract class AbstractController
      * @param array $priceTypes
      * @return array
      */
-    private function getPrices(Product $product, array $priceTypes): array
+    private function getPrices(Product $product, array $priceTypes, string $method): array
     {
         $result = [];
 
@@ -299,22 +298,12 @@ abstract class AbstractController
                 $priceType = $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT];
                 foreach ($priceModel->getItems() as $item) {
                     $result[self::STUECKPREIS][$priceType] = [
-                        "value" => $item->getNetPrice(),
-                        "debug" => time(),
+                        "value" => $item->getNetPrice()
                     ];
                     break;
                 }
             }
         }
-
-        $vat = $product->getVat();
-        $uvpNet = $product->getRecommendedRetailPrice();
-        $uvpGross = $uvpNet * (1 + $vat / 100);
-
-        $result[self::STUECKPREIS][$priceTypes['UPE']] = [
-            "value" => round($uvpGross, 4),
-            "debug" => 'UVP net: ' . $uvpNet . '| vat: ' . $vat . '% | UVP gross: ' . $uvpGross
-        ];
 
         // 2) Special prices
         foreach ($product->getSpecialPrices() as $specialModel) {
