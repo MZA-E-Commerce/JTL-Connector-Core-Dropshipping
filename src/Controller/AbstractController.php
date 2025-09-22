@@ -197,21 +197,28 @@ abstract class AbstractController
                 break;
             case self::UPDATE_TYPE_PRODUCT_PRICE:
                 $this->logger->info('Updating product prices (SKU: ' . $product->getSku() . ')');
-                $postDataPrices = $this->getPrices($product, $priceTypes, self::UPDATE_TYPE_PRODUCT_PRICE);
+                $postDataPrices = $this->getPrices($product, $priceTypes);
                 break;
             case self::UPDATE_TYPE_PRODUCT:
                 $this->logger->info('Updating product data (SKU: ' . $product->getSku() . ')');
 
-                $tmpUpeData = [];
-                $uvpNet = $product->getRecommendedRetailPrice();
-                if (!is_null($uvpNet)) {
-                    $vat = $product->getVat();
-                    $uvpGross = $uvpNet * (1 + $vat / 100);
+                $useGrossPrices = $this->config->get('useGrossPrices');
+                if ($useGrossPrices) {
+                    $tmpUpeData = [];
+                    $uvpNet = $product->getRecommendedRetailPrice();
+                    if (!is_null($uvpNet)) {
+                        $vat = $product->getVat();
+                        $uvpGross = $uvpNet * (1 + $vat / 100);
+                        $tmpUpeData[self::STUECKPREIS][$priceTypes['UPE']] = [
+                            "value" => round($uvpGross, 4)
+                        ];
+                    }
+                } else {
                     $tmpUpeData[self::STUECKPREIS][$priceTypes['UPE']] = [
-                        "value" => round($uvpGross, 4)
+                        "value" => $product->getRecommendedRetailPrice()
                     ];
                 }
-                $postDataPrices = array_merge_recursive($tmpUpeData, $this->getPrices($product, $priceTypes, self::UPDATE_TYPE_PRODUCT));
+                $postDataPrices = array_merge_recursive($tmpUpeData, $this->getPrices($product, $priceTypes));
                 break;
         }
 
@@ -288,7 +295,7 @@ abstract class AbstractController
      * @param array $priceTypes
      * @return array
      */
-    private function getPrices(Product $product, array $priceTypes, string $method): array
+    private function getPrices(Product $product, array $priceTypes): array
     {
         $result = [];
 
