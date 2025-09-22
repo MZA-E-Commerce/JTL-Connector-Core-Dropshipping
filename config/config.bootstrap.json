@@ -1,20 +1,23 @@
 {
+  "log": {
+    "level": "error"
+  },
   "db": {
-    "host": "jtl-connector-db",
+    "host": "jtl-connector-dropshipping-mysql",
     "name": "jtl-connector",
     "username": "jtl-connector",
     "password": "jtl-connector"
   },
-  "token": "1234567890",
+  "token": "xxx",
+  "useGrossPrices": false,
   "priceTypes": {
-    "B2C": "VK21",
-    "B2B": "VK4",
-    "UPE": "VK24"
+    "MZA B2B-DS": "VK20",
+    "UPE": "VK21"
   },
   "endpoint": {
     "api": {
-      "url": "https://domain.de/api",
-      "key": "1234567890",
+      "url": "https://test-shop-service.mza-vertrieb.de/api",
+      "key": "xxx",
       "endpoints": {
         "setProductStockLevel": {
           "method": "POST",
@@ -28,9 +31,9 @@
           "method": "PUT",
           "url": "/verkaufspreise/{sku}/{priceType}/{endpointType}"
         },
-        "geCustomerOrders": {
+        "getCustomerOrders": {
           "method": "GET",
-          "url": "/transferauftraege/pending"
+          "url": "/transferauftraege/pending?auftragsArt=DA"
         }
       }
     }
