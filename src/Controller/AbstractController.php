@@ -202,7 +202,7 @@ abstract class AbstractController
                 break;
             case self::UPDATE_TYPE_PRODUCT_PRICE:
                 $this->logger->info('Updating product prices (SKU: ' . $product->getSku() . ')');
-                $postDataPrices = $this->getPrices($product, $priceTypes);
+
                 break;
             case self::UPDATE_TYPE_PRODUCT:
                 $this->logger->info('Updating product data (SKU: ' . $product->getSku() . ')');
@@ -223,7 +223,9 @@ abstract class AbstractController
                         "value" => $product->getRecommendedRetailPrice()
                     ];
                 }
-                $postDataPrices = array_merge_recursive($tmpUpeData, $this->getPrices($product, $priceTypes));
+                // $postDataPrices = $this->getPrices($product, $priceTypes);
+                // For DS only VK20 (UPE as net price is relevant)
+                $postDataPrices = array_merge_recursive($tmpUpeData, $postDataPrices);
                 break;
         }
 

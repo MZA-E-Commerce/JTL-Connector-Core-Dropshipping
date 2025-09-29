@@ -11,8 +11,8 @@
   "token": "xxx",
   "useGrossPrices": false,
   "priceTypes": {
-    "MZA B2B-DS": "VK20",
-    "UPE": "VK21"
+    "MZA B2B-DS": "VKXX - NOT USED AT THE MOMENT!",
+    "UPE": "VK20"
   },
   "endpoint": {
     "api": {
