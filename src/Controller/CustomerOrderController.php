@@ -139,6 +139,7 @@ class CustomerOrderController extends AbstractController implements PullInterfac
             }
 
         } catch (\Throwable $e) {
+            $this->logger->error('HTTP request failed: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
             throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
         }
 
