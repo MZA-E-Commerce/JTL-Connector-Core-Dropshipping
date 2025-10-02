@@ -47,6 +47,11 @@ class CustomerOrderController extends AbstractController implements PullInterfac
 
                 $order->setOrderNumber($orderData['auftragsNr']);
 
+                $setOrderCustomerNumber = $this->config->get('setOrderCustomerNumber');
+                if ($setOrderCustomerNumber) {
+                    $order->setCustomerId(new Identity($orderData['kundenNr']??'', 0));
+                }
+
                 $attribute = new KeyValueAttribute();
                 $attribute->setKey('externeAuftragsnummer'); // oder 'order_number', 'order_id'
                 $attribute->setValue($orderData['externeAuftragsnummer']);
