@@ -27,6 +27,19 @@ class CustomerOrderController extends AbstractController implements PullInterfac
             $statusCode = $response->getStatusCode();
             $data = $response->toArray();
 
+            $serverName = $_SERVER['SERVER_NAME'] ?? gethostname();
+            if ($serverName == 'jtl-connector.docker') {
+                file_put_contents('/var/www/html/var/log/api_response.log', 'API Response 
+                            | Date: ' . date('d.m.Y H:i:s') . ' 
+                            | Endpoint: ' . $endpointUrl . ' 
+                            | Data: ' . PHP_EOL . print_r($data, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
+            } else {
+                file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/api_response.log', 'API Response 
+                            | Date: ' . date('d.m.Y H:i:s') . ' 
+                            | Endpoint: ' . $endpointUrl . ' 
+                            | Data: ' . PHP_EOL . print_r($data, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
+            }
+
             if ($statusCode !== 200) {
                 $this->logger->error('Endpoint ' . self::UPDATE_TYPE_CUSTOMER_ORDERS . ' error!');
                 return [];
@@ -46,6 +59,11 @@ class CustomerOrderController extends AbstractController implements PullInterfac
                 }
 
                 $order->setOrderNumber($orderData['auftragsNr']);
+
+                $setOrderCustomerNumber = $this->config->get('setOrderCustomerNumber');
+                if ($setOrderCustomerNumber) {
+                    $order->setCustomerId(new Identity($orderData['kundenNr']??'', 0));
+                }
 
                 $attribute = new KeyValueAttribute();
                 $attribute->setKey('externeAuftragsnummer'); // oder 'order_number', 'order_id'
@@ -141,6 +159,16 @@ class CustomerOrderController extends AbstractController implements PullInterfac
         } catch (\Throwable $e) {
             $this->logger->error('HTTP request failed: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
             throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
+        }
+
+        if ($serverName == 'jtl-connector.docker') {
+            file_put_contents('/var/www/html/var/log/orders_for_jtl_wawi.log', 'Result 
+                            | Date: ' . date('d.m.Y H:i:s') . ' 
+                            | Data: ' . PHP_EOL . print_r($orders, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
+        } else {
+            file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/orders_for_jtl_wawi.log', 'Result  
+                            | Date: ' . date('d.m.Y H:i:s') . '  
+                            | Data: ' . PHP_EOL . print_r($orders, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
         }
 
         return $orders;
