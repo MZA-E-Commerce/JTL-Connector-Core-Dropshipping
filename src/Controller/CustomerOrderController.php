@@ -109,6 +109,10 @@ class CustomerOrderController extends AbstractController implements PullInterfac
                     $order->addAttribute($shippingTypeAttribute);
                 }
 
+                if (!empty($orderData['anmerkung'])) {
+                    $order->setNote(trim($orderData['anmerkung']));
+                }
+
                 // Shipping address
                 $shippingAddress = new CustomerOrderShippingAddress();
                 $shippingAddress->setCountryIso(!empty($orderData['lieferLand']) ? $orderData['lieferLand'] : 'DE'); // Default to 'DE' if not set
