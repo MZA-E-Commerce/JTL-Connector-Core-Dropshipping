@@ -73,6 +73,11 @@ abstract class AbstractController
     protected LoggerInterface $logger;
 
     /**
+     * @var LoggerService
+     */
+    protected LoggerService $loggerService;
+
+    /**
      * Using direct dependencies for better testing and easier use with a DI container.
      *
      * AbstractController constructor.
