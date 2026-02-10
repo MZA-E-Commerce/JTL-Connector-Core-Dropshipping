@@ -212,6 +212,7 @@ abstract class AbstractController
         $postData = [];
         $postDataPrices = [];
         $priceTypes = $this->config->get('priceTypes');
+        $useGrossPrices = $this->config->get('useGrossPrices');
 
         switch ($type) {
             case self::UPDATE_TYPE_PRODUCT_STOCK_LEVEL:
@@ -220,13 +221,9 @@ abstract class AbstractController
                 $postData['lagerbestand'] = $product->getStockLevel();
                 break;
             case self::UPDATE_TYPE_PRODUCT_PRICE:
-                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Updating product prices (SKU: ' . $product->getSku() . ')');
-                $postDataPrices = $this->getPrices($product, $priceTypes);
-                break;
             case self::UPDATE_TYPE_PRODUCT:
-                $this->logger->info('Updating product data (SKU: ' . $product->getSku() . ')');
+                $this->logger->info('Updating product data/price (SKU: ' . $product->getSku() . ')');
 
-                $useGrossPrices = $this->config->get('useGrossPrices');
                 if ($useGrossPrices) {
                     $tmpUpeData = [];
                     $uvpNet = $product->getRecommendedRetailPrice();
@@ -242,6 +239,7 @@ abstract class AbstractController
                         "value" => $product->getRecommendedRetailPrice()
                     ];
                 }
+
                 // $postDataPrices = $this->getPrices($product, $priceTypes);
                 // For DS only VK20 (UPE as net price is relevant)
                 $postDataPrices = array_merge_recursive($tmpUpeData, $postDataPrices);
