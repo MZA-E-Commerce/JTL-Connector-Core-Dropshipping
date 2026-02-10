@@ -300,7 +300,7 @@ abstract class AbstractController
                 $responseData = $response->toArray();
 
                 if ($statusCode === 200 && isset($responseData['artikelNr']) && $responseData['artikelNr'] === $product->getSku()) {
-                    $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Product updated successfully (SKU: ' . $product->getSku() . ', duration: ' . $elapsed . 's)');
+                    $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Product updated successfully (SKU: ' . $product->getSku() . ')');
                     return;
                 }
                 throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
