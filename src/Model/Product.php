@@ -1650,9 +1650,6 @@ class Product extends AbstractIdentity implements TranslatableAttributesInterfac
      */
     public function getRecommendedRetailPrice(): ?float
     {
-        if ($_SERVER['SERVER_NAME'] ?? gethostname() == 'jtl-connector.docker') {
-            file_put_contents('/var/www/html/var/log/getRecommendedRetailPrice.log', $this->getSku() . ' | ' . print_r($this->recommendedRetailPrice, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
-        }
         return $this->recommendedRetailPrice;
     }
 
@@ -1663,9 +1660,6 @@ class Product extends AbstractIdentity implements TranslatableAttributesInterfac
      */
     public function setRecommendedRetailPrice(float $recommendedRetailPrice): self
     {
-        if ($_SERVER['SERVER_NAME'] ?? gethostname() == 'jtl-connector.docker') {
-            file_put_contents('/var/www/html/var/log/setRecommendedRetailPrice.log', $this->getSku() . ' | ' . print_r($recommendedRetailPrice, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
-        }
         $this->recommendedRetailPrice = $recommendedRetailPrice;
 
         return $this;
