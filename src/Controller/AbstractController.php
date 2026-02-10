@@ -4,10 +4,10 @@ namespace Jtl\Connector\Core\Controller;
 
 use DateTimeZone;
 use Jtl\Connector\Core\Config\CoreConfigInterface;
-use Jtl\Connector\Core\Logger\LoggerService;
 use Jtl\Connector\Core\Model\AbstractModel;
 use Jtl\Connector\Core\Model\Identity;
 use Jtl\Connector\Core\Model\Product;
+use Jtl\Connector\Core\Logger\LoggerService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
@@ -20,12 +20,9 @@ abstract class AbstractController
     /**
      * @var string
      */
-    public const CUSTOMER_TYPE_B2B_DROPSHIPPING = '323ab1d7bf0b80017719d8404cbe4d46';
+    public const CUSTOMER_TYPE_B2B = 'b1d7b4cbe4d846f0b323a9d840800177';
 
-    /**
-     * @var string
-     */
-    public const CUSTOMER_TYPE_B2B_DS_SHORTCUT = 'MZA B2B-DS';
+    public const CUSTOMER_TYPE_B2B_SHORTCUT = 'MZA B2B-DS';
 
     /**
      * @var string
@@ -83,6 +80,7 @@ abstract class AbstractController
      * AbstractController constructor.
      * @param CoreConfigInterface $config
      * @param LoggerInterface $logger
+     * @param LoggerService $loggerService
      */
     public function __construct(CoreConfigInterface $config, LoggerInterface $logger, LoggerService $loggerService)
     {
@@ -175,7 +173,9 @@ abstract class AbstractController
                 'X-Api-Key' => $apiKey ?? $this->config->get('endpoint.api.key'),
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
-            ]
+            ],
+            'timeout' => 60,
+            'max_duration' => 120,
         ];
 
         if (!empty($basicAuthData)) {
@@ -207,12 +207,9 @@ abstract class AbstractController
         $client = $this->getHttpClient();
         $fullApiUrl = $this->getEndpointUrl($type);
 
-        $fullApiUrl = str_replace('{sku}', $product->getSku(), $fullApiUrl);
-
         $postData = [];
         $postDataPrices = [];
         $priceTypes = $this->config->get('priceTypes');
-        $useGrossPrices = $this->config->get('useGrossPrices');
 
         switch ($type) {
             case self::UPDATE_TYPE_PRODUCT_STOCK_LEVEL:
@@ -221,9 +218,13 @@ abstract class AbstractController
                 $postData['lagerbestand'] = $product->getStockLevel();
                 break;
             case self::UPDATE_TYPE_PRODUCT_PRICE:
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Updating product prices (SKU: ' . $product->getSku() . ')');
+                $postDataPrices = $this->getPrices($product, $priceTypes);
+                break;
             case self::UPDATE_TYPE_PRODUCT:
-                $this->logger->info('Updating product data/price (SKU: ' . $product->getSku() . ')');
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Updating product data (SKU: ' . $product->getSku() . ')');
 
+                $useGrossPrices = $this->config->get('useGrossPrices');
                 if ($useGrossPrices) {
                     $tmpUpeData = [];
                     $uvpNet = $product->getRecommendedRetailPrice();
@@ -240,9 +241,7 @@ abstract class AbstractController
                     ];
                 }
 
-                // $postDataPrices = $this->getPrices($product, $priceTypes);
-                // For DS only VK20 (UPE as net price is relevant)
-                $postDataPrices = array_merge_recursive($tmpUpeData, $postDataPrices);
+                $postDataPrices = array_merge_recursive($tmpUpeData, $this->getPrices($product, $priceTypes));
                 break;
         }
 
@@ -274,25 +273,41 @@ abstract class AbstractController
             }
             file_put_contents($logFile, PHP_EOL . PHP_EOL, FILE_APPEND);
 
+            $startTime = microtime(true);
             try {
                 $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postDataPrices]);
                 $statusCode = $response->getStatusCode();
                 $responseData = $response->toArray();
 
                 if ($statusCode === 200 && isset($responseData['data']['transferID']) && $responseData['data']['artikelNr'] === $product->getSku()) {
-                    $this->logger->info('Product price updated successfully (SKU: ' . $product->getSku() . ')');
+                    $elapsed = round(microtime(true) - $startTime, 2);
+                    $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Product price updated successfully (SKU: ' . $product->getSku() . ', duration: ' . $elapsed . 's)');
                     return;
                 }
 
                 throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
 
-            } catch (TransportExceptionInterface|HttpExceptionInterface|DecodingExceptionInterface $e) {
+            } catch (TransportExceptionInterface $e) {
+                $elapsed = round(microtime(true) - $startTime, 2);
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->error(sprintf(
+                    'TIMEOUT/Transport error after %ss for %s %s (SKU: %s): %s',
+                    $elapsed, $httpMethod, $fullApiUrl, $product->getSku(), $e->getMessage()
+                ));
+                throw new \RuntimeException('HTTP request failed (timeout/transport): ' . $e->getMessage(), 0, $e);
+            } catch (HttpExceptionInterface|DecodingExceptionInterface $e) {
+                $elapsed = round(microtime(true) - $startTime, 2);
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->error(sprintf(
+                    'HTTP error after %ss for %s %s (SKU: %s): %s',
+                    $elapsed, $httpMethod, $fullApiUrl, $product->getSku(), $e->getMessage()
+                ));
                 throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
             }
         }
 
         if (!empty($postData)) {
+            $startTime = microtime(true);
             try {
+
                 $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info($httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData));
 
                 $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
@@ -300,15 +315,26 @@ abstract class AbstractController
                 $responseData = $response->toArray();
 
                 if ($statusCode === 200 && isset($responseData['artikelNr']) && $responseData['artikelNr'] === $product->getSku()) {
-                    $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Product updated successfully (SKU: ' . $product->getSku() . ')');
+                    $elapsed = round(microtime(true) - $startTime, 2);
+                    $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Product updated successfully (SKU: ' . $product->getSku() . ', duration: ' . $elapsed . 's)');
                     return;
                 }
+
                 throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
+
             } catch (TransportExceptionInterface $e) {
-                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->error($e->getMessage());
+                $elapsed = round(microtime(true) - $startTime, 2);
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->error(sprintf(
+                    'TIMEOUT/Transport error after %ss for %s %s (SKU: %s): %s',
+                    $elapsed, $httpMethod, $fullApiUrl, $product->getSku(), $e->getMessage()
+                ));
                 throw new \RuntimeException('HTTP request failed (timeout/transport): ' . $e->getMessage(), 0, $e);
             } catch (HttpExceptionInterface|DecodingExceptionInterface $e) {
-                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->error($e->getMessage());
+                $elapsed = round(microtime(true) - $startTime, 2);
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->error(sprintf(
+                    'HTTP error after %ss for %s %s (SKU: %s): %s',
+                    $elapsed, $httpMethod, $fullApiUrl, $product->getSku(), $e->getMessage()
+                ));
                 throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
             }
         }
@@ -331,8 +357,8 @@ abstract class AbstractController
 
         // 1) regular prices
         foreach ($product->getPrices() as $priceModel) {
-            if ($priceModel->getCustomerGroupId()->getEndpoint() == self::CUSTOMER_TYPE_B2B_DROPSHIPPING) {
-                $priceType = $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT];
+            if ($priceModel->getCustomerGroupId()->getEndpoint() == self::CUSTOMER_TYPE_B2B) {
+                $priceType = $priceTypes[self::CUSTOMER_TYPE_B2B_SHORTCUT];
                 foreach ($priceModel->getItems() as $item) {
                     $result[self::STUECKPREIS][$priceType] = [
                         "value" => $item->getNetPrice()
@@ -347,7 +373,7 @@ abstract class AbstractController
             foreach ($specialModel->getItems() as $item) {
 
                 $priceType = match ($item->getCustomerGroupId()->getEndpoint()) {
-                    self::CUSTOMER_TYPE_B2B_DROPSHIPPING => $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT],
+                    self::CUSTOMER_TYPE_B2B => $priceTypes[self::CUSTOMER_TYPE_B2B_SHORTCUT],
                     default => null,
                 };
 
@@ -370,8 +396,8 @@ abstract class AbstractController
     }
 
     /*
- * Convert price data to endpoint format
- */
+     * Convert price data to endpoint format
+     */
     private function convert(array $inputArray, string $articleNumber, float $taxValue = 19): array
     {
         $priceType = array_key_first($inputArray['stueckpreis'] ?? []) ?? '';
@@ -420,7 +446,7 @@ abstract class AbstractController
 
         $isActive = $this->config->get('endpoint.api.endpoints.' . $type . '.active');
         if (!$isActive) {
-            $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Product deleted successfully (SKU: ' . $sku . ')');
+            $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Skipping delete product (endpoint inactive)');
             return;
         }
 
@@ -430,7 +456,7 @@ abstract class AbstractController
             $responseData = $response->toArray();
 
             if ($statusCode === 200 && isset($responseData['artikelNr']) && $responseData['artikelNr'] === $sku) {
-                $this->logger->info('Product deleted successfully (SKU: ' . $sku . ')');
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Product deleted successfully (SKU: ' . $sku . ')');
                 return;
             }
             throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
