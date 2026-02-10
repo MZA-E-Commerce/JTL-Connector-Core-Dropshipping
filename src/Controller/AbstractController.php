@@ -223,25 +223,7 @@ abstract class AbstractController
                 break;
             case self::UPDATE_TYPE_PRODUCT:
                 $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Updating product data (SKU: ' . $product->getSku() . ')');
-
-                $useGrossPrices = $this->config->get('useGrossPrices');
-                if ($useGrossPrices) {
-                    $tmpUpeData = [];
-                    $uvpNet = $product->getRecommendedRetailPrice();
-                    if (!is_null($uvpNet)) {
-                        $vat = $product->getVat();
-                        $uvpGross = $uvpNet * (1 + $vat / 100);
-                        $tmpUpeData[self::STUECKPREIS][$priceTypes['UPE']] = [
-                            "value" => round($uvpGross, 4)
-                        ];
-                    }
-                } else {
-                    $tmpUpeData[self::STUECKPREIS][$priceTypes['UPE']] = [
-                        "value" => $product->getRecommendedRetailPrice()
-                    ];
-                }
-
-                $postDataPrices = array_merge_recursive($tmpUpeData, $this->getPrices($product, $priceTypes));
+                $postDataPrices = $this->getPrices($product, $priceTypes);
                 break;
         }
 
