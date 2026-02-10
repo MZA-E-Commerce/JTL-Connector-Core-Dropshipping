@@ -4,6 +4,7 @@ namespace Jtl\Connector\Core\Controller;
 
 use DateTimeZone;
 use Jtl\Connector\Core\Config\CoreConfigInterface;
+use Jtl\Connector\Core\Logger\LoggerService;
 use Jtl\Connector\Core\Model\AbstractModel;
 use Jtl\Connector\Core\Model\Identity;
 use Jtl\Connector\Core\Model\Product;
@@ -78,10 +79,11 @@ abstract class AbstractController
      * @param CoreConfigInterface $config
      * @param LoggerInterface $logger
      */
-    public function __construct(CoreConfigInterface $config, LoggerInterface $logger)
+    public function __construct(CoreConfigInterface $config, LoggerInterface $logger, LoggerService $loggerService)
     {
         $this->config = $config;
         $this->logger = $logger;
+        $this->loggerService = $loggerService;
     }
 
     /**
@@ -95,14 +97,14 @@ abstract class AbstractController
         foreach ($models as $i => $model) {
             // Check type
             if (!$model instanceof Product) {
-                $this->logger->error('Invalid model type. Expected Product, got ' . get_class($model));
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->error('Invalid model type. Expected Product, got ' . get_class($model));
                 continue;
             }
 
             $identity = $model->getId();
             // Check existing mapping
             if ($identity->getEndpoint()) {
-                $this->logger->info(\sprintf(
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info(\sprintf(
                     'Product already has identity (host=%d endpoint=%d)',
                     $identity->getHost(),
                     $identity->getEndpoint()
@@ -115,7 +117,7 @@ abstract class AbstractController
                         throw new \Exception('Invalid/empty endpoint ID (SKU)');
                     }
                 } catch (\Throwable $e) {
-                    $this->logger->error('Error fetching Endpoint ID for SKU ' . $model->getSku() . ': ' . $e->getMessage());
+                    $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->error('Error fetching Endpoint ID for SKU ' . $model->getSku() . ': ' . $e->getMessage());
                     continue;
                 }
 
@@ -127,7 +129,7 @@ abstract class AbstractController
             try {
                 $this->updateModel($model);
             } catch (\Throwable $e) {
-                $this->logger->error('Error in updateModel(): ' . $e->getMessage());
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->error('Error in updateModel(): ' . $e->getMessage());
             }
 
             $models[$i] = $model;
@@ -208,13 +210,13 @@ abstract class AbstractController
 
         switch ($type) {
             case self::UPDATE_TYPE_PRODUCT_STOCK_LEVEL:
-                $this->logger->info('Updating product stock level (SKU: ' . $product->getSku() . ')');
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Updating product stock level (SKU: ' . $product->getSku() . ')');
                 $postData['artikelNr'] = $product->getId()->getEndpoint();
                 $postData['lagerbestand'] = $product->getStockLevel();
                 break;
             case self::UPDATE_TYPE_PRODUCT_PRICE:
-                $this->logger->info('Updating product prices (SKU: ' . $product->getSku() . ')');
-
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Updating product prices (SKU: ' . $product->getSku() . ')');
+                $postDataPrices = $this->getPrices($product, $priceTypes);
                 break;
             case self::UPDATE_TYPE_PRODUCT:
                 $this->logger->info('Updating product data (SKU: ' . $product->getSku() . ')');
@@ -247,25 +249,27 @@ abstract class AbstractController
 
             $serverName = $_SERVER['SERVER_NAME'] ?? gethostname();
             if ($serverName == 'jtl-connector.docker') {
-                file_put_contents('/var/www/html/var/log/postDataPrices.log', 'PostData: 
-                            | Date: ' . date('d.m.Y H:i:s') . ' 
-                            | Method: ' . $httpMethod . ' 
-                            | Type: ' . $type . ' 
-                            | URL: ' . $fullApiUrl . ' 
-                            | Data: ' . print_r($postDataPrices, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
+                $logFile = '/var/www/html/var/log/postDataPrices.log';
             } else {
-                file_put_contents('/home/www/p689712/html/jtl-connector-dropshipping/var/log/postDataPrices.log', 'PostData: 
-                            | Date: ' . date('d.m.Y H:i:s') . ' 
-                            | Method: ' . $httpMethod . ' 
-                            | Type: ' . $type . ' 
-                            | URL: ' . $fullApiUrl . ' 
-                            | Data: ' . print_r($postDataPrices, true) . PHP_EOL . PHP_EOL, FILE_APPEND);
+                $logFile = '/home/www/p689712/html/prod.jtl-connector-dropshipping/var/log/postDataPrices.log';
+                if (str_contains($fullApiUrl, 'test-shop-service')) {
+                    $logFile = '/home/www/p689712/html/jtl-connector-dropshipping/var/log/postDataPrices.log';
+                }
             }
 
+            file_put_contents($logFile, 'PostData: ' . PHP_EOL . '
+                | Date: ' . date('d.m.Y H:i:s') . ' 
+                | Method: ' . $httpMethod . ' 
+                | Type: ' . $type . ' 
+                | URL: ' . $fullApiUrl . ' 
+                | Data: ' . print_r($postDataPrices, true) . PHP_EOL, FILE_APPEND);
+
             if ($postDataPrices['stueckpreis'] <= 0) {
-                $this->logger->info('Skipping update for price type ' . $postDataPrices['bezeichnung'] . ' with value ' . $postDataPrices['stueckpreis'] . ' (SKU: ' . $product->getSku() . ')');
+                file_put_contents($logFile, 'stueckpreis <= 0 ... skipping!' . PHP_EOL, FILE_APPEND);
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Skipping update for price type ' . $postDataPrices['bezeichnung'] . ' with value ' . $postDataPrices['stueckpreis'] . ' (SKU: ' . $product->getSku() . ')');
                 return;
             }
+            file_put_contents($logFile, PHP_EOL . PHP_EOL, FILE_APPEND);
 
             try {
                 $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postDataPrices]);
@@ -286,17 +290,22 @@ abstract class AbstractController
 
         if (!empty($postData)) {
             try {
-                $this->logger->info($httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData));
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info($httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData));
+
                 $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
                 $statusCode = $response->getStatusCode();
                 $responseData = $response->toArray();
 
                 if ($statusCode === 200 && isset($responseData['artikelNr']) && $responseData['artikelNr'] === $product->getSku()) {
-                    $this->logger->info('Product updated successfully (SKU: ' . $product->getSku() . ')');
+                    $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Product updated successfully (SKU: ' . $product->getSku() . ', duration: ' . $elapsed . 's)');
                     return;
                 }
                 throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
-            } catch (TransportExceptionInterface|HttpExceptionInterface|DecodingExceptionInterface $e) {
+            } catch (TransportExceptionInterface $e) {
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->error($e->getMessage());
+                throw new \RuntimeException('HTTP request failed (timeout/transport): ' . $e->getMessage(), 0, $e);
+            } catch (HttpExceptionInterface|DecodingExceptionInterface $e) {
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->error($e->getMessage());
                 throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
             }
         }
@@ -393,7 +402,7 @@ abstract class AbstractController
             try {
                 $sku = $this->getSkuByJtlId($product->getId()->getHost());
             } catch (\Throwable $e) {
-                $this->logger->error('Error fetching SKU from JTL-ID (PIMCore): ' . $e->getMessage());
+                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->error('Error fetching SKU from JTL-ID (PIMCore): ' . $e->getMessage());
                 throw $e;
             }
         }
@@ -404,11 +413,11 @@ abstract class AbstractController
         $client = $this->getHttpClient();
         $fullApiUrl = $this->getEndpointUrl($type);
         $httpMethod = $this->config->get('endpoint.api.endpoints.' . $type . '.method');
-        $this->logger->info($httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData));
+        $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info($httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData));
 
         $isActive = $this->config->get('endpoint.api.endpoints.' . $type . '.active');
         if (!$isActive) {
-            $this->logger->info('Skipping delete product (endpoint inactive)');
+            $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Product deleted successfully (SKU: ' . $sku . ')');
             return;
         }
 
