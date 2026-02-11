@@ -46,7 +46,7 @@ class GlobalDataController implements PullInterface, PushInterface
         );
 
         $globalData->addCustomerGroup(
-            (new CustomerGroup())->setId(new Identity(AbstractController::CUSTOMER_TYPE_B2B))
+            (new CustomerGroup())->setId(new Identity(AbstractController::CUSTOMER_TYPE_B2B_DROPSHIPPING))
                 ->setIsDefault(false)
                 ->setApplyNetPrice(true)
                 ->addI18n((new CustomerGroupI18n())->setName('MZA B2B-DS')->setLanguageIso('ger'))

@@ -17,12 +17,12 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 abstract class AbstractController
 {
+    public const CUSTOMER_TYPE_B2B_DROPSHIPPING = '323ab1d7bf0b80017719d8404cbe4d46';
+
     /**
      * @var string
      */
-    public const CUSTOMER_TYPE_B2B = 'b1d7b4cbe4d846f0b323a9d840800177';
-
-    public const CUSTOMER_TYPE_B2B_SHORTCUT = 'MZA B2B-DS';
+    public const CUSTOMER_TYPE_B2B_DS_SHORTCUT = 'MZA B2B-DS';
 
     /**
      * @var string
@@ -339,8 +339,8 @@ abstract class AbstractController
 
         // 1) regular prices
         foreach ($product->getPrices() as $priceModel) {
-            if ($priceModel->getCustomerGroupId()->getEndpoint() == self::CUSTOMER_TYPE_B2B) {
-                $priceType = $priceTypes[self::CUSTOMER_TYPE_B2B_SHORTCUT];
+            if ($priceModel->getCustomerGroupId()->getEndpoint() == self::CUSTOMER_TYPE_B2B_DROPSHIPPING) {
+                $priceType = $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT];
                 foreach ($priceModel->getItems() as $item) {
                     $result[self::STUECKPREIS][$priceType] = [
                         "value" => $item->getNetPrice()
@@ -355,7 +355,7 @@ abstract class AbstractController
             foreach ($specialModel->getItems() as $item) {
 
                 $priceType = match ($item->getCustomerGroupId()->getEndpoint()) {
-                    self::CUSTOMER_TYPE_B2B => $priceTypes[self::CUSTOMER_TYPE_B2B_SHORTCUT],
+                    self::CUSTOMER_TYPE_B2B_DROPSHIPPING => $priceTypes[self::CUSTOMER_TYPE_B2B_DS_SHORTCUT],
                     default => null,
                 };
 
