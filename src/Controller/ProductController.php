@@ -16,6 +16,11 @@ class ProductController extends AbstractController implements DeleteInterface
         parent::__construct($config, $logger, $loggerService);
     }
 
+    protected function getBulkType(): ?string
+    {
+        return self::UPDATE_TYPE_PRODUCT_BULK;
+    }
+
     protected function updateModel(Product $model): void
     {
         $this->updateProductEndpoint($model);
