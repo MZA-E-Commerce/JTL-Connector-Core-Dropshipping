@@ -16,6 +16,7 @@
   "setOrderCustomerNumber": false,
   "endpoint": {
     "api": {
+      "useBulk": false,
       "url": "https://test-shop-service.mza-vertrieb.de/api",
       "key": "xxx",
       "endpoints": {
