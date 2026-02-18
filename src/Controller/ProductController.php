@@ -2,7 +2,6 @@
 
 namespace Jtl\Connector\Core\Controller;
 
-use Jtl\Connector\Core\Application\Application;
 use Jtl\Connector\Core\Config\CoreConfigInterface;
 use Jtl\Connector\Core\Logger\LoggerService;
 use Jtl\Connector\Core\Model\AbstractModel;
