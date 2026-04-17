@@ -47,13 +47,14 @@
         "deleteProduct": {
           "active": false,
           "method": "POST",
-          "url": "/artikel/delete?auftragsArt=DA"
+          "url": "/transferartikelfreigaben/CreateOrUpdate",
+          "auftragsArt": "DA"
         },
         "getSkuByJtlId": {
           "active": true,
           "ignoreMissingSku": true,
           "method": "GET",
-          "url": "http://mza-nginx/api/jtl/connector/getSkuByJtlId?jtlId={jtlId}",
+          "url": "https://staging.mza.de/api/jtl/connector/getSkuByJtlId?jtlId={jtlId}",
           "comment": "Fetches SKU by JTL-ID from PIMCORE API",
           "key": "1234567890",
           "basicAuth": {
