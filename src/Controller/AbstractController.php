@@ -537,49 +537,88 @@ abstract class AbstractController
     }
 
     /**
-     * @param Product $product
+     * @param Product[] $products
      * @param string $type
      * @return void
      * @throws \Throwable
      */
-    protected function deleteProductEndpoint(Product $product, string $type = 'deleteProduct'): void
+    protected function deleteProductsEndpoint(array $products, string $type = 'deleteProduct'): void
     {
-        $sku = !empty($product->getSku()) ? $product->getSku() : $product->getId()->getEndpoint();
+        // DELETE IS HANDLED BY JTL DIRECTLY! Nothing to do here!
+        $this->loggerService->get(LoggerService::CHANNEL_DELETE)->info('Product will NOT deleted at this point! JTL handles "Freigabe" directly!');
+        return;
 
-        if (empty($sku)) {
+        if (empty($products)) {
+            return;
+        }
+
+        $salesChannel = $this->config->get('endpoint.api.endpoints.' . $type . '.auftragsArt');
+        $httpMethod = $this->config->get('endpoint.api.endpoints.' . $type . '.method');
+
+        $items = [];
+        foreach ($products as $product) {
             try {
                 $sku = $this->getSkuByJtlId($product->getId()->getHost());
             } catch (\Throwable $e) {
-                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->error('Error fetching SKU from JTL-ID (PIMCore): ' . $e->getMessage());
-                throw $e;
+                $this->loggerService->get(LoggerService::CHANNEL_DELETE)->error(sprintf(
+                    'Error fetching SKU from JTL-ID %d (PIMCore): %s',
+                    $product->getId()->getHost(), $e->getMessage()
+                ));
+                continue;
             }
+
+            if (empty($sku)) {
+                $this->loggerService->get(LoggerService::CHANNEL_DELETE)->warning(sprintf(
+                    'Skipping delete: no SKU for JTL-ID %d', $product->getId()->getHost()
+                ));
+                continue;
+            }
+
+            $items[] = [
+                'artikelNr' => $sku,
+                'vertriebskanal' => $salesChannel,
+                'freigabe' => false,
+            ];
         }
 
-        $postData['jtlId'] = $product->getId()->getHost();
-        $postData['artikelNr'] = $sku; // could be null!
+        if (empty($items)) {
+            $this->loggerService->get(LoggerService::CHANNEL_DELETE)->info('No deletable products collected, skipping request');
+            return;
+        }
 
         $client = $this->getHttpClient();
         $fullApiUrl = $this->getEndpointUrl($type);
-        $httpMethod = $this->config->get('endpoint.api.endpoints.' . $type . '.method');
-        $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info($httpMethod . ' -> ' . $fullApiUrl . ' -> ' . json_encode($postData));
+
+        $this->loggerService->get(LoggerService::CHANNEL_DELETE)->info(sprintf(
+            '%s -> %s -> %d item(s): %s',
+            $httpMethod, $fullApiUrl, count($items), json_encode($items)
+        ));
 
         $isActive = $this->config->get('endpoint.api.endpoints.' . $type . '.active');
         if (!$isActive) {
-            $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Skipping delete product (endpoint inactive)');
+            $this->loggerService->get(LoggerService::CHANNEL_DELETE)->info('Skipping delete products (endpoint inactive)');
             return;
         }
 
         try {
-            $response = $client->request($httpMethod, $fullApiUrl, ['json' => $postData]);
+            $response = $client->request($httpMethod, $fullApiUrl, ['json' => $items]);
             $statusCode = $response->getStatusCode();
             $responseData = $response->toArray();
 
-            if ($statusCode === 200 && isset($responseData['artikelNr']) && $responseData['artikelNr'] === $sku) {
-                $this->loggerService->get(LoggerService::CHANNEL_ENDPOINT)->info('Product deleted successfully (SKU: ' . $sku . ')');
+            if ($statusCode === 200) {
+                $this->loggerService->get(LoggerService::CHANNEL_DELETE)->info(sprintf(
+                    'Bulk delete successful (%d item(s), response: %s)',
+                    count($items), json_encode($responseData)
+                ));
                 return;
             }
-            throw new \RuntimeException('API error: ' . ($data['error'] ?? 'Unknown error'));
+            throw new \RuntimeException('API error: ' . ($responseData['error'] ?? 'Unknown error'));
         } catch (TransportExceptionInterface|HttpExceptionInterface|DecodingExceptionInterface $e) {
+            $body = $e->getResponse()?->getContent(false) ?? '';
+            $this->loggerService->get(LoggerService::CHANNEL_DELETE)->error(sprintf(
+                'Bulk delete failed (%d item(s)): %s | response: %s',
+                count($items), $e->getMessage(), $body
+            ));
             throw new \RuntimeException('HTTP request failed: ' . $e->getMessage(), 0, $e);
         }
     }
