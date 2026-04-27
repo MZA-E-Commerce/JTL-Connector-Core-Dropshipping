@@ -544,6 +544,10 @@ abstract class AbstractController
      */
     protected function deleteProductsEndpoint(array $products, string $type = 'deleteProduct'): void
     {
+        // DELETE IS HANDLED BY JTL DIRECTLY! Nothing to do here!
+        $this->loggerService->get(LoggerService::CHANNEL_DELETE)->info('Product will NOT deleted at this point! JTL handles "Freigabe" directly!');
+        return;
+
         if (empty($products)) {
             return;
         }

@@ -13,6 +13,7 @@
   "priceTypes": {
     "MZA B2B-DS": "VK20"
   },
+  "auftragsArt": "DA",
   "setOrderCustomerNumber": false,
   "endpoint": {
     "api": {
